@@ -81,15 +81,36 @@ class Approval extends Extension
         }
     }
 
+    private function check_permissions(Image $image): bool
+    {
+        global $user, $config;
+
+        if ( $config->get_bool(ApprovalConfig::IMAGES) && $image->approved===false && !$user->can(Permissions::APPROVE_IMAGE)) {
+            return false;
+        }
+        return true;
+    }
+
     public function onDisplayingImage(DisplayingImageEvent $event)
     {
-        global $user, $page, $config;
+        global $user, $page;
 
-        if ( $config->get_bool(ApprovalConfig::IMAGES) && $event->image->approved===false && !$user->can(Permissions::APPROVE_IMAGE)) {
+        if (!$this->check_permissions(($event->image))) {
             $page->set_mode(PageMode::REDIRECT);
-            $page->set_redirect(make_link("post/list"));
+            $page->set_redirect(make_link());
         }
     }
+
+    public function onImageDownloading(ImageDownloadingEvent $event)
+    {
+        /**
+         * Deny images upon insufficient permissions.
+         **/
+        if(!$this->check_permissions($event->image)) {
+            throw new Exception("Access denied");
+        }
+    }
+
 
     public function onPageSubNavBuilding(PageSubNavBuildingEvent $event)
     {
