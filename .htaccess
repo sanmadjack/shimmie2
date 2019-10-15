@@ -20,6 +20,12 @@
 	RewriteRule ^_images/([0-9a-f]{2})([0-9a-f]{30}).*$  data/images/$1/$1$2 [L]
 	RewriteRule ^_thumbs/([0-9a-f]{2})([0-9a-f]{30}).*$  data/thumbs/$1/$1$2 [L]
 
+    # if image security is needed, use these rewrite rules isntead of the two above.
+    # Rather than linking directly to the output files, these go through php
+    # so that image permissions can be enforced.
+	#RewriteRule ^_images/([0-9a-fA-F]{32}|[0-9]+).*$  index.php?q=/image/$1 [L]
+	#RewriteRule ^_thumbs/([0-9a-fA-F]{32}|[0-9]+).*$  index.php?q=/thumb/$1 [L]
+
 	# any requests for files which don't physically exist should be handled by index.php
 	RewriteCond %{REQUEST_FILENAME} !-f
 	RewriteRule ^(.*)$ index.php?q=$1&%{QUERY_STRING} [L]

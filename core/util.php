@@ -616,3 +616,12 @@ function make_form(string $target, string $method="POST", bool $multipart=false,
     }
     return '<form action="'.$target.'" method="'.$method.'" '.$extra.'>'.$extra_inputs;
 }
+
+const HASH_REGEX = "/([a-fA-F0-9]{32})/";
+const HASH_ONLY_REGEX = "/^([a-fA-F0-9]{32})$/";
+
+function is_hash(string $value): bool
+{
+    // Do a strlen to short-circuit the check if possible
+    return strlen($value)==32 && preg_match(HASH_ONLY_REGEX, $value);
+}

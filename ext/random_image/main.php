@@ -20,9 +20,7 @@ class RandomImage extends Extension
 
             if ($action === "download") {
                 if (!is_null($image)) {
-                    $page->set_mode(PageMode::DATA);
-                    $page->set_type($image->get_mime_type());
-                    $page->set_data(file_get_contents($image->get_image_filename()));
+                    send_event(new ImageDownloadingEvent($image, $image->get_image_filename(), $image->get_mime_type()));
                 }
             } elseif ($action === "view") {
                 if (!is_null($image)) {
@@ -58,7 +56,7 @@ class RandomImage extends Extension
 
     public function onPageSubNavBuilding(PageSubNavBuildingEvent $event)
     {
-        if ($event->parent=="posts") {
+        if($event->parent=="posts") {
             $event->add_nav_link("posts_random", new Link('random_image/view'), "Random Image");
         }
     }

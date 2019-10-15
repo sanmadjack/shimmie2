@@ -70,11 +70,9 @@ class ImageIO extends Extension
                 }
             }
         } elseif ($event->page_matches("image")) {
-            $num = int_escape($event->get_arg(0));
-            $this->send_file($num, "image");
+            $this->send_file($event->get_arg(0), "image");
         } elseif ($event->page_matches("thumb")) {
-            $num = int_escape($event->get_arg(0));
-            $this->send_file($num, "thumb");
+            $this->send_file($event->get_arg(0), "thumb");
         }
     }
 
@@ -240,24 +238,31 @@ class ImageIO extends Extension
     // }}}  end add
 
     // fetch image {{{
-    private function send_file(int $image_id, string $type)
+    private function send_file(string $image_id, string $type)
     {
         global $config;
-        $image = Image::by_id($image_id);
+
+
+        if(is_hash($image_id)) {
+            $image = Image::by_hash($image_id);
+        } else {
+            $image = Image::by_id(int_escape($image_id));
+        }
 
         global $page;
         if (!is_null($image)) {
+            $mime = "";
             if ($type == "thumb") {
                 $ext = $config->get_string(ImageConfig::THUMB_TYPE);
                 if (array_key_exists($ext, MIME_TYPE_MAP)) {
-                    $page->set_type(MIME_TYPE_MAP[$ext]);
+                    $mime = MIME_TYPE_MAP[$ext];
                 } else {
-                    $page->set_type("image/jpeg");
+                    $mime = "image/jpeg";
                 }
 
                 $file = $image->get_thumb_filename();
             } else {
-                $page->set_type($image->get_mime_type());
+                $mime = $image->get_mime_type();
                 $file = $image->get_image_filename();
             }
 
@@ -287,6 +292,8 @@ class ImageIO extends Extension
                     $expires = 'Fri, 2 Sep 2101 12:42:42 GMT'; // War was beginning
                 }
                 $page->add_http_header('Expires: ' . $expires);
+
+                send_event(new ImageDownloadingEvent($image, $file, $mime));
             }
         } else {
             $page->set_title("Not Found");
