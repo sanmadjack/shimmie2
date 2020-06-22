@@ -18,9 +18,9 @@ class TagPallet extends Extension
     }
 
 
-    public function onSetupBuilding(SetupBuildingEvent $event)
-    {
-        $sb = new SetupBlock("Tagger");
-        $event->panel->add_block($sb);
-    }
+//    public function onSetupBuilding(SetupBuildingEvent $event)
+//    {
+//        $sb = new SetupBlock("Tagger");
+//        $event->panel->add_block($sb);
+//    }
 }
