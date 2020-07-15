@@ -48,6 +48,7 @@ class FileExtension
     public const PSD = 'psd';
     public const MOV = 'mov';
     public const RSS = 'rss';
+    public const STL = 'stl';
     public const SVG = 'svg';
     public const TAR = 'tar';
     public const TEXT = 'txt';

@@ -42,6 +42,7 @@ class MimeType
     public const QUICKTIME = 'video/quicktime';
     public const RSS = 'application/rss+xml';
     public const SVG = 'image/svg+xml';
+    public const STL = 'model/stl';
     public const TAR = 'application/x-tar';
     public const TEXT = 'text/plain';
     public const TIFF = 'image/tiff';
