@@ -49,6 +49,7 @@ class FileExtension
     public const PPM = 'ppm';
     public const MOV = 'mov';
     public const RSS = 'rss';
+    public const STL = 'stl';
     public const SVG = 'svg';
     public const TAR = 'tar';
     public const TGA = 'tga';

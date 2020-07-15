@@ -174,6 +174,11 @@ class MimeMap
             self::MAP_EXT => [FileExtension::RSS],
             self::MAP_MIME => [MimeType::RSS],
         ],
+        MimeType::STL => [
+            self::MAP_NAME => "STL",
+            self::MAP_EXT => [FileExtension::STL],
+            self::MAP_MIME => [MimeType::STL],
+        ],
         MimeType::SVG => [
             self::MAP_NAME => "SVG",
             self::MAP_EXT => [FileExtension::SVG],
