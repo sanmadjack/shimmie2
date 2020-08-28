@@ -62,6 +62,7 @@
 		"ext-zip": "self-updater extension, bulk import/export",
 		"ext-zlib": "anti-spam",
 		"ext-xml": "some extensions",
-		"ext-gd": "GD-based thumbnailing"
+		"ext-gd": "GD-based thumbnailing",
+		"libre3d/render-3d": "STL icon rendering"
 	}
 }
