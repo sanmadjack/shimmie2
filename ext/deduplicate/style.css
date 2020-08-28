@@ -1,0 +1,93 @@
+table.similar_items img {
+	max-height: 128pt;
+	max-width: 128pt;
+
+}
+
+table.img-comp {
+	width:auto;
+}
+
+.image-info {
+	word-break: break-word;
+	width:200px;
+	vertical-align: top;
+}
+
+.image-info img {
+	width:100px;
+}
+
+.greater {
+	color:green;
+}
+
+.unique_tag, .unique_tag:hover {
+	color:green;
+}
+
+.lesser {
+	color:red;
+}
+
+.similarity {
+	text-align: center;
+}
+
+.left-image-info {
+	text-align: right;
+}
+
+* {box-sizing: border-box;}
+
+.img-comp-container {
+	position: relative;
+}
+
+.img-comp-img {
+	position: absolute;
+	width: auto;
+	height: auto;
+	overflow: hidden;
+
+}
+
+.img-comp-img div {
+	display: block;
+	vertical-align: middle;
+
+	background-size: contain;
+	background-color: black;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+.img-comp-overlay {
+	border-left:none;
+	border-top:none;
+	border-bottom:none;
+	border-right: solid 1px black;
+
+}
+
+
+.img-comp-slider {
+	position: absolute;
+	z-index: 9;
+	cursor: ew-resize;
+	/*set the appearance of the slider:*/
+	width: 40px;
+	height: 40px;
+	background-color: #2196F3;
+	opacity: 0.7;
+	border-radius: 50%;
+}
+
+img.similar_item {
+	max-height: 100px;
+	max-width: 100px;
+}
+
+td.similar_items img {
+	margin:2px;
+}
