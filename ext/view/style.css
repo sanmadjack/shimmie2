@@ -13,3 +13,6 @@
 	display: none;
 }
 
+table.image_info button[name="submit_action"] {
+    width:49%;
+}

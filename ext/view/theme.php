@@ -27,6 +27,7 @@ class ViewImageTheme extends Themelet
         //$page->add_block(new Block(null, $this->build_pin($image), "main", 11));
 
         $query = $this->get_query();
+
         $page->add_html_header("<link id='nextlink' rel='next' href='".make_link("post/next/{$image->id}", $query)."'>");
         $page->add_html_header("<link id='prevlink' rel='previous' href='".make_link("post/prev/{$image->id}", $query)."'>");
     }
@@ -51,10 +52,9 @@ class ViewImageTheme extends Themelet
     protected function build_pin(Image $image): string
     {
         $query = $this->get_query();
-        $h_prev = "<a id='prevlink' href='".make_link("post/prev/{$image->id}", $query)."'>Prev</a>";
+        $h_prev = "<a id='prevlink' rel='previous' href='".make_link("post/prev/{$image->id}", $query)."'>Prev</a>";
         $h_index = "<a href='".make_link()."'>Index</a>";
-        $h_next = "<a id='nextlink' href='".make_link("post/next/{$image->id}", $query)."'>Next</a>";
-
+        $h_next = "<a id='nextlink' rel='next' href='".make_link("post/next/{$image->id}", $query)."'>Next</a>";
         return "$h_prev | $h_index | $h_next";
     }
 
@@ -80,7 +80,7 @@ class ViewImageTheme extends Themelet
             return ($image->is_locked() ? "<br>[Post Locked]" : "");
         }
 
-        $html = make_form(make_link("post/set"))."
+        $html = "<span id='image_info'>".make_form(make_link("post/set"))."
 					<input type='hidden' name='image_id' value='{$image->id}'>
 					<table style='width: 500px; max-width: 100%;' class='image_info form'>
 		";
@@ -93,14 +93,16 @@ class ViewImageTheme extends Themelet
         ) {
             $html .= "
 						<tr><td colspan='4'>
-							<input class='view' type='button' value='Edit' onclick='$(\".view\").hide(); $(\".edit\").show();'>
-							<input class='edit' type='submit' value='Set'>
+							<button class='view' type='button' onclick='$(\".view\").hide(); $(\".edit\").show();'>Edit</button>
+							<button class='edit' type='submit' name='submit_action' value='set'>Set</button>
+							<button class='edit' type='submit' name='submit_action' value='set_next'>Set and go to Next</button>
 						</td></tr>
 			";
         }
         $html .= "
 					</table>
 				</form>
+				</span>
 		";
         return $html;
     }
