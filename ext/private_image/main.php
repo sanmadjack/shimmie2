@@ -36,7 +36,7 @@ class PrivateImage extends Extension
     {
         global $page, $user, $user_config;
 
-        if ($event->page_matches("privatize_image") && $user->can(Permissions::SET_PRIVATE_IMAGE)) {
+        if ($event->page_matches("privatize_image") && $user->can(Permissions::SET_PRIVATE_POST)) {
             // Try to get the image ID
             $image_id = int_escape($event->get_arg(0));
             if (empty($image_id)) {
@@ -49,7 +49,7 @@ class PrivateImage extends Extension
             if ($image==null) {
                 throw new SCoreException("Post not found.");
             }
-            if ($image->owner_id!=$user->can(Permissions::SET_OTHERS_PRIVATE_IMAGES)) {
+            if ($image->owner_id!=$user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
                 throw new SCoreException("Cannot set another user's image to private.");
             }
 
@@ -71,7 +71,7 @@ class PrivateImage extends Extension
             if ($image==null) {
                 throw new SCoreException("Post not found.");
             }
-            if ($image->owner_id!=$user->can(Permissions::SET_OTHERS_PRIVATE_IMAGES)) {
+            if ($image->owner_id!=$user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
                 throw new SCoreException("Cannot set another user's image to private.");
             }
 
@@ -110,7 +110,7 @@ class PrivateImage extends Extension
     {
         global $user, $page;
 
-        if ($event->image->private===true && $event->image->owner_id!=$user->id && !$user->can(Permissions::SET_OTHERS_PRIVATE_IMAGES)) {
+        if ($event->image->private===true && $event->image->owner_id!=$user->id && !$user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
             $page->set_mode(PageMode::REDIRECT);
             $page->set_redirect(make_link("post/list"));
         }
@@ -157,7 +157,7 @@ class PrivateImage extends Extension
                     $params["true"] = true;
 
                     // Admins can view others private images, but they have to specify the user
-                    if (!$user->can(Permissions::SET_OTHERS_PRIVATE_IMAGES) ||
+                    if (!$user->can(Permissions::SET_OTHERS_PRIVATE_POSTS) ||
                         !UserPage::has_user_query($event->context)) {
                         $query .= " AND owner_id = :private_owner_id";
                         $params["private_owner_id"] = $user->id;
@@ -216,8 +216,8 @@ class PrivateImage extends Extension
 
     public function onImageAdminBlockBuilding(ImageAdminBlockBuildingEvent $event)
     {
-        global $user;
-        if ($user->can(Permissions::SET_PRIVATE_IMAGE) && $user->id==$event->image->owner_id) {
+        global $user, $config;
+        if ($user->can(Permissions::SET_PRIVATE_POST) && $user->id==$event->image->owner_id) {
             $event->add_part($this->theme->get_image_admin_html($event->image));
         }
     }
@@ -234,7 +234,7 @@ class PrivateImage extends Extension
     {
         global $user;
 
-        if ($user->can(Permissions::SET_PRIVATE_IMAGE)) {
+        if ($user->can(Permissions::SET_PRIVATE_POST)) {
             $event->add_action("bulk_privatize_image", "Make Private");
             $event->add_action("bulk_publicize_image", "Make Public");
         }
@@ -246,11 +246,11 @@ class PrivateImage extends Extension
 
         switch ($event->action) {
             case "bulk_privatize_image":
-                if ($user->can(Permissions::SET_PRIVATE_IMAGE)) {
+                if ($user->can(Permissions::SET_PRIVATE_POST)) {
                     $total = 0;
                     foreach ($event->items as $image) {
                         if ($image->owner_id==$user->id ||
-                            $user->can(Permissions::SET_OTHERS_PRIVATE_IMAGES)) {
+                            $user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
                             self::privatize_image($image->id);
                             $total++;
                         }
@@ -262,7 +262,7 @@ class PrivateImage extends Extension
                 $total = 0;
                 foreach ($event->items as $image) {
                     if ($image->owner_id==$user->id ||
-                        $user->can(Permissions::SET_OTHERS_PRIVATE_IMAGES)) {
+                        $user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
                         self::publicize_image($image->id);
                         $total++;
                     }

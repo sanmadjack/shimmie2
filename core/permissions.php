@@ -100,8 +100,8 @@ abstract class Permissions
     public const APPROVE_IMAGE = "approve_image";
     public const APPROVE_COMMENT = "approve_comment";
 
-    public const SET_PRIVATE_IMAGE = "set_private_image";
-    public const SET_OTHERS_PRIVATE_IMAGES = "set_others_private_images";
+    public const SET_PRIVATE_POST = "set_private_post";
+    public const SET_OTHERS_PRIVATE_POSTS = "set_others_private_posts";
 
     public const CRON_RUN = "cron_run";
     public const BULK_IMPORT = "bulk_import";

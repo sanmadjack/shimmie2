@@ -86,7 +86,7 @@ new UserClass("user", "base", [
     Permissions::EDIT_FAVOURITES => true,
     Permissions::SEND_PM => true,
     Permissions::READ_PM => true,
-    Permissions::SET_PRIVATE_IMAGE => true,
+    Permissions::SET_PRIVATE_POST => true,
     Permissions::BULK_DOWNLOAD => true,
     Permissions::CHANGE_USER_SETTING => true
 ]);
@@ -197,8 +197,8 @@ new UserClass("admin", "base", [
     Permissions::BULK_EXPORT =>true,
     Permissions::BULK_DOWNLOAD => true,
 
-    Permissions::SET_PRIVATE_IMAGE => true,
-    Permissions::SET_OTHERS_PRIVATE_IMAGES => true,
+    Permissions::SET_PRIVATE_POST => true,
+    Permissions::SET_OTHERS_PRIVATE_POSTS => true,
 ]);
 
 @include_once "data/config/user-classes.conf.php";

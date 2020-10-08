@@ -9,4 +9,5 @@ class PrivateImageInfo extends ExtensionInfo
     public array $authors = ["Matthew Barbour"=>"matthew@darkholme.net"];
     public string $license = self::LICENSE_WTFPL;
     public string $description = "Allows users to mark images as private, which prevents other users from seeing them.";
+    public array $conflicts = [PostPermissionsInfo::KEY];
 }
