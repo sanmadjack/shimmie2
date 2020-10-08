@@ -126,14 +126,12 @@ class Deduplicate extends Extension
 
     public function onSetupBuilding(SetupBuildingEvent $event)
     {
-        $sb = new SetupBlock("Deduplication");
+        $sb = $event->panel->create_new_block("Deduplication");
 
         $sb->start_table();
         $sb->add_int_option(DeduplicateConfig::MAXIMUM_DISTANCE, "Max distance", true);
         $sb->add_bool_option(DeduplicateConfig::SHOW_SAVED, "Show saved on post", true);
         $sb->end_table();
-
-        $event->panel->add_block($sb);
     }
 
     public function onImageInfoBoxBuilding(ImageInfoBoxBuildingEvent $event)

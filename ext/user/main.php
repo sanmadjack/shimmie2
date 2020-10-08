@@ -275,7 +275,7 @@ class UserPage extends Extension
             "Gravatar" => "gravatar"
         ];
 
-        $sb = new SetupBlock("User Options");
+        $sb = $event->panel->create_new_block("User Options");
         $sb->start_table();
         $sb->add_bool_option(UserConfig::ENABLE_API_KEYS, "Enable user API keys", true);
         $sb->add_bool_option("login_signup_enabled", "Allow new signups", true);
@@ -316,8 +316,6 @@ class UserPage extends Extension
             );
         }
         $sb->end_table();
-
-        $event->panel->add_block($sb);
     }
 
     public function onPageSubNavBuilding(PageSubNavBuildingEvent $event)

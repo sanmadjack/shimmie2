@@ -165,7 +165,7 @@ class Ratings extends Extension
             $options[$rating->name] = $rating->code;
         }
 
-        $sb = new SetupBlock("Image Ratings");
+        $sb = $event->panel->create_new_block("Image Ratings");
         $sb->start_table();
         foreach (array_keys($_shm_user_classes) as $key) {
             if ($key == "base" || $key == "hellbanned") {
@@ -174,8 +174,6 @@ class Ratings extends Extension
             $sb->add_multichoice_option("ext_rating_" . $key . "_privs", $options, $key, true);
         }
         $sb->end_table();
-
-        $event->panel->add_block($sb);
     }
 
     public function onDisplayingImage(DisplayingImageEvent $event)

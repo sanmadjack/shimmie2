@@ -57,15 +57,13 @@ class RandomList extends Extension
 
     public function onSetupBuilding(SetupBuildingEvent $event)
     {
-        $sb = new SetupBlock("Random Images List");
+        $sb = $event->panel->create_new_block("Random Images List");
 
         // custom headers
         $sb->add_int_option(
             "random_images_list_count",
             "Amount of Random images to display "
         );
-
-        $event->panel->add_block($sb);
     }
 
     public function onPageSubNavBuilding(PageSubNavBuildingEvent $event)
