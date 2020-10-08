@@ -29,4 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return joinUrlSegments(attr,query);
         });
 	}
+
+	// Set up some keyboard shortcuts
+    window.addEventListener('keyup', function (e) {
+        if (e.key === "Delete") {
+            let button = document.getElementById("image_delete_button");
+            if(button) {
+                button.click();
+            }
+        }
+    }, false);
+
 });
