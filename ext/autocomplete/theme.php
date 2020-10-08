@@ -53,13 +53,12 @@ class AutoCompleteTheme extends Themelet
 
     public function display_admin_block(SetupBuildingEvent $event)
     {
-        $sb = new SetupBlock("Autocomplete");
+        $sb = $event->panel->create_new_block("Autocomplete");
         $sb->start_table();
         $sb->add_int_option(AutoCompleteConfig::SEARCH_LIMIT, "Search Limit", true);
         $sb->add_bool_option(AutoCompleteConfig::SEARCH_CATEGORIES, "Search Categories", true);
         $sb->add_bool_option(AutoCompleteConfig::NAVIGATION, "Enable For Navigation", true);
         $sb->add_bool_option(AutoCompleteConfig::TAGGING, "Enable For Tagging", true);
         $sb->end_table();
-        $event->panel->add_block($sb);
     }
 }
