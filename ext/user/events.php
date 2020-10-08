@@ -14,16 +14,52 @@ class UserBlockBuildingEvent extends Event
     }
 }
 
-class UserOptionsBuildingEvent extends Event
+class UserOperationsBuildingEvent extends Event
 {
     /** @var array  */
     public $parts = [];
+    /** @var User  */
+    public $user = [];
+    /** @var BaseConfig  */
+    public $user_config = [];
+
+    public function __construct(User $user, BaseConfig $user_config)
+    {
+        parent::__construct();
+        $this->user = $user;
+        $this->user_config = $user_config;
+    }
 
     public function add_html(string $html)
     {
         $this->parts[] = $html;
     }
 }
+
+class UserOptionsBuildingEvent extends Event
+{
+    /** @var SetupTheme */
+    protected $theme;
+
+    /** @var SetupPanel */
+    public $panel;
+
+    /** @var User  */
+    public $user = [];
+
+
+    public function __construct(User $user, SetupPanel $panel)
+    {
+        parent::__construct();
+        $this->user = $user;
+        $this->panel = $panel;
+    }
+
+    public function add_html(string $html)
+    {
+    }
+}
+
 
 class UserPageBuildingEvent extends Event
 {

@@ -229,7 +229,27 @@ class UserPageTheme extends Themelet
         $page->add_block(new Block("Stats", join("<br>", $stats), "main", 10));
     }
 
-    public function build_options(User $duser, UserOptionsBuildingEvent $event): string
+    public function build_options(User $user, SetupPanel $panel): string
+    {
+        usort($panel->blocks, "blockcmp");
+
+        $setupblock_html = "";
+        foreach ($panel->blocks as $block) {
+            $setupblock_html .= $this->sb_to_html($block);
+        }
+
+        $table = "
+			".make_form(make_link("user_config/save"))."
+            <input type='hidden' name='id' value='".$user->id."'>
+				<div class='setupblocks'>$setupblock_html</div>
+				<input type='submit' value='Save Settings'>
+			</form>
+			";
+
+        return $table;
+    }
+
+    public function build_operations(User $duser, UserOperationsBuildingEvent $event): string
     {
         global $config, $user;
         $html = emptyHTML();
@@ -337,5 +357,19 @@ class UserPageTheme extends Themelet
             ));
         }
         return $output;
+    }
+
+    protected function sb_to_html(SetupBlock $block)
+    {
+        $h = $block->header;
+        $b = $block->body;
+        $i = preg_replace('/[^a-zA-Z0-9]/', '_', $h) . "-setup";
+        $html = "
+			<section class='setupblock'>
+				<b class='shm-toggler' data-toggle-sel='#$i'>$h</b>
+				<br><div id='$i'>$b</div>
+			</section>
+		";
+        return $html;
     }
 }

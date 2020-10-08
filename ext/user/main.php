@@ -165,6 +165,27 @@ class UserPage extends Extension
             }
         }
 
+        if ($event->page_matches("user_config")) {
+            if (!$user->can(Permissions::CHANGE_SETTING)) {
+                $this->theme->display_permission_denied();
+            } else {
+                if ($event->count_args() == 0) {
+                    $page->set_redirect(make_link("user"));
+                } elseif ($event->get_arg(0) == "save" && $user->check_auth_token()) {
+                    $input = validate_input([
+                        'id' => 'user_id,exists'
+                    ]);
+                    $duser = User::by_id($input['id']);
+                    $target_config = UserConfig::get_for_user($duser->id);
+                    send_event(new ConfigSaveEvent($target_config));
+                    $target_config->save();
+                    $page->flash("Config saved");
+                    $page->set_mode(PageMode::REDIRECT);
+                    $page->set_redirect(make_link("user"));
+                }
+            }
+        }
+
         if ($event->page_matches("user")) {
             $display_user = ($event->count_args() == 0) ? $user : User::by_name($event->get_arg(0));
             if ($event->count_args() == 0 && $user->is_anonymous()) {
@@ -240,10 +261,19 @@ class UserPage extends Extension
 
         if (!$user->is_anonymous()) {
             if ($user->id == $event->display_user->id || $user->can("edit_user_info")) {
-                $uobe = new UserOptionsBuildingEvent();
+                $user_config = UserConfig::get_for_user($event->display_user->id);
+
+                $uobe = new UserOperationsBuildingEvent($event->display_user, $user_config);
+                send_event($uobe);
+                $page->add_block(new Block("Operations", $this->theme->build_operations($event->display_user, $uobe), "main", 60));
+
+
+                $uobe = new UserOptionsBuildingEvent($event->display_user, new SetupPanel($user_config));
                 send_event($uobe);
 
-                $page->add_block(new Block("Options", $this->theme->build_options($event->display_user, $uobe), "main", 60));
+                $page->add_block(
+                    new Block("Options",
+                    $this->theme->build_options($event->display_user, $uobe->panel), "main", 60));
             }
         }
 
@@ -359,8 +389,8 @@ class UserPage extends Extension
         }
     }
 
-    public const USER_SEARCH_REGEX = "/^(?:poster|user)[=|:](.*)$/i";
-    public const USER_ID_SEARCH_REGEX = "/^(?:poster|user)_id[=|:]([0-9]+)$/i";
+    public const USER_SEARCH_REGEX = "/^(?:poster|user)(!?)[=|:](.*)$/i";
+    public const USER_ID_SEARCH_REGEX = "/^(?:poster|user)_id(!?)[=|:]([0-9]+)$/i";
 
     public static function has_user_query(array $context): bool
     {
@@ -383,11 +413,11 @@ class UserPage extends Extension
 
         $matches = [];
         if (preg_match(self::USER_SEARCH_REGEX, $event->term, $matches)) {
-            $user_id = User::name_to_id($matches[1]);
-            $event->add_querylet(new Querylet("images.owner_id = $user_id"));
+            $user_id = User::name_to_id($matches[2]);
+            $event->add_querylet(new Querylet("images.owner_id ${matches[1]}= $user_id"));
         } elseif (preg_match(self::USER_ID_SEARCH_REGEX, $event->term, $matches)) {
-            $user_id = int_escape($matches[1]);
-            $event->add_querylet(new Querylet("images.owner_id = $user_id"));
+            $user_id = int_escape($matches[2]);
+            $event->add_querylet(new Querylet("images.owner_id ${matches[1]}= $user_id"));
         } elseif ($user->can(Permissions::VIEW_IP) && preg_match("/^(?:poster|user)_ip[=|:]([0-9\.]+)$/i", $event->term, $matches)) {
             $user_ip = $matches[1]; // FIXME: ip_escape?
             $event->add_querylet(new Querylet("images.owner_ip = '$user_ip'"));

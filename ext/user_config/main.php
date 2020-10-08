@@ -36,10 +36,20 @@ class UserConfig extends Extension
 
     public function onUserLogin(UserLoginEvent $event)
     {
-        global $database, $user_config;
+        global $user_config;
 
-        $user_config = new DatabaseConfig($database, "user_config", "user_id", "{$event->user->id}");
-        send_event(new InitUserConfigEvent($event->user, $user_config));
+        $user_config = self::get_for_user($event->user->id);
+    }
+
+    public static function get_for_user(int $id): BaseConfig
+    {
+        global $database;
+
+        $user = User::by_id($id);
+
+        $user_config = new DatabaseConfig($database, "user_config", "user_id", "$id");
+        send_event(new InitUserConfigEvent($user, $user_config));
+        return $user_config;
     }
 
     public function onDatabaseUpgrade(DatabaseUpgradeEvent $event): void
@@ -98,20 +108,19 @@ class UserConfig extends Extension
         }
     }
 
-    public function onUserOptionsBuilding(UserOptionsBuildingEvent $event)
+    public function onUserOperationsBuilding(UserOperationsBuildingEvent $event)
     {
-        global $config, $user_config;
+        global $config;
 
         if ($config->get_bool(self::ENABLE_API_KEYS)) {
-            $key = $user_config->get_string(self::API_KEY, "");
+            $key = $event->user_config->get_string(self::API_KEY, "");
             if (empty($key)) {
                 $key = generate_key();
-                $user_config->set_string(self::API_KEY, $key);
+                $event->user_config->set_string(self::API_KEY, $key);
             }
-            $event->add_html($this->theme->get_user_options($key));
+            $event->add_html($this->theme->get_user_operations($key));
         }
     }
-
 
     // This needs to happen before any other events, but after db upgrade
     public function get_priority(): int

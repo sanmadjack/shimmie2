@@ -5,7 +5,7 @@ use function MicroHTML\INPUT;
 
 class UserConfigTheme extends Themelet
 {
-    public function get_user_options(string $key): string
+    public function get_user_operations(string $key): string
     {
         $html = "
                 <p>".make_form(make_link("user_admin/reset_api_key"))."
