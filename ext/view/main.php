@@ -76,14 +76,20 @@ class ViewImage extends Extension
             $image = Image::by_id($image_id);
             if (!$image->is_locked() || $user->can(Permissions::EDIT_IMAGE_LOCK)) {
                 send_event(new ImageInfoSetEvent($image));
-                $page->set_mode(PageMode::REDIRECT);
 
-                if (isset($_GET['search'])) {
-                    $query = "search=" . url_escape($_GET['search']);
+                if (array_key_exists('submit_action', $_POST)&&$_POST['submit_action']=="set_next") {
+                    redirect_to_next_image($image);
                 } else {
-                    $query = null;
+                    $page->set_mode(PageMode::REDIRECT);
+
+                    if (isset($_GET['search'])) {
+                        $query = "search=" . url_escape($_GET['search']);
+                    } else {
+                        $query = null;
+                    }
+
+                    $page->set_redirect(make_link("post/view/$image_id", null, $query));
                 }
-                $page->set_redirect(make_link("post/view/$image_id", null, $query)); 
             } else {
                 $this->theme->display_error(403, "Image Locked", "An admin has locked this image");
             }

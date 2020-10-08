@@ -25,5 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
         $('span#image_delete_form form').attr('action', function(i, attr) {
             return joinUrlSegments(attr,query);
         });
+        $('span#image_info form').attr('action', function(i, attr) {
+            return joinUrlSegments(attr,query);
+        });
 	}
 });
