@@ -2,14 +2,14 @@
 
 class AuthorSetEvent extends Event
 {
-    /** @var Image  */
+    /** @var Post  */
     public $image;
     /** @var User  */
     public $user;
     /** @var string */
     public $author;
 
-    public function __construct(Image $image, User $user, string $author)
+    public function __construct(Post $image, User $user, string $author)
     {
         parent::__construct();
         $this->image = $image;
@@ -211,7 +211,7 @@ class Artists extends Extension
                     $userIsLogged = !$user->is_anonymous();
                     $userIsAdmin = $user->can(Permissions::ARTISTS_ADMIN);
 
-                    $images = Image::find_images(0, 4, Tag::explode($artist['name']));
+                    $images = Post::find_images(0, 4, Tag::explode($artist['name']));
 
                     $this->theme->show_artist($artist, $aliases, $members, $urls, $images, $userIsLogged, $userIsAdmin);
                     /*

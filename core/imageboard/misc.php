@@ -140,8 +140,8 @@ function create_image_thumb(string $hash, string $mime, string $engine = null)
 {
     global $config;
 
-    $inname = warehouse_path(Image::IMAGE_DIR, $hash);
-    $outname = warehouse_path(Image::THUMBNAIL_DIR, $hash);
+    $inname = warehouse_path(Post::IMAGE_DIR, $hash);
+    $outname = warehouse_path(Post::THUMBNAIL_DIR, $hash);
     $tsize = get_thumbnail_max_size_scaled();
     create_scaled_image(
         $inname,
@@ -183,7 +183,7 @@ function create_scaled_image(string $inname, string $outname, array $tsize, stri
     ));
 }
 
-function redirect_to_next_image(Image $image): void
+function redirect_to_next_image(Post $image): void
 {
     global $page;
 

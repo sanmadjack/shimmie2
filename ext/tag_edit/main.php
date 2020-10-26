@@ -8,12 +8,12 @@
  */
 class OwnerSetEvent extends Event
 {
-    /** @var Image  */
+    /** @var Post  */
     public $image;
     /** @var User  */
     public $owner;
 
-    public function __construct(Image $image, User $owner)
+    public function __construct(Post $image, User $owner)
     {
         parent::__construct();
         $this->image = $image;
@@ -24,12 +24,12 @@ class OwnerSetEvent extends Event
 
 class SourceSetEvent extends Event
 {
-    /** @var Image */
+    /** @var Post */
     public $image;
     /** @var string */
     public $source;
 
-    public function __construct(Image $image, string $source=null)
+    public function __construct(Post $image, string $source=null)
     {
         parent::__construct();
         $this->image = $image;
@@ -51,7 +51,7 @@ class TagSetException extends SCoreException
 
 class TagSetEvent extends Event
 {
-    /** @var Image */
+    /** @var Post */
     public $image;
     public $tags;
     public $metatags;
@@ -59,7 +59,7 @@ class TagSetEvent extends Event
     /**
      * #param string[] $tags
      */
-    public function __construct(Image $image, array $tags)
+    public function __construct(Post $image, array $tags)
     {
         parent::__construct();
         $this->image    = $image;
@@ -90,12 +90,12 @@ class TagSetEvent extends Event
 
 class LockSetEvent extends Event
 {
-    /** @var Image */
+    /** @var Post */
     public $image;
     /** @var bool */
     public $locked;
 
-    public function __construct(Image $image, bool $locked)
+    public function __construct(Post $image, bool $locked)
     {
         parent::__construct();
         $this->image = $image;
@@ -283,7 +283,7 @@ class TagEdit extends Extension
     {
         if (preg_match("/^source[=|:](.*)$/i", $event->term, $matches)) {
             $source = ($matches[1] !== "none" ? $matches[1] : null);
-            send_event(new SourceSetEvent(Image::by_id($event->image_id), $source));
+            send_event(new SourceSetEvent(Post::by_id($event->image_id), $source));
         }
     }
 
@@ -305,7 +305,7 @@ class TagEdit extends Extension
         log_info("tag_edit", "Mass editing tags: '$search' -> '$replace'");
 
         if (count($search_set) == 1 && count($replace_set) == 1) {
-            $images = Image::find_images(0, 10, $replace_set);
+            $images = Post::find_images(0, 10, $replace_set);
             if (count($images) == 0) {
                 log_info("tag_edit", "No images found with target tag, doing in-place rename");
                 $database->execute(
@@ -331,7 +331,7 @@ class TagEdit extends Extension
                 $search_forward[] = "id<$last_id";
             }
 
-            $images = Image::find_images(0, 100, $search_forward);
+            $images = Post::find_images(0, 100, $search_forward);
             if (count($images) == 0) {
                 break;
             }
@@ -375,7 +375,7 @@ class TagEdit extends Extension
                 $search_forward[] = "id<$last_id";
             }
 
-            $images = Image::find_images(0, 100, $search_forward);
+            $images = Post::find_images(0, 100, $search_forward);
             if (count($images) == 0) {
                 break;
             }

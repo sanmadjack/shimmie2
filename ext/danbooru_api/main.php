@@ -166,13 +166,13 @@ class DanbooruApi extends Extension
         if (isset($_GET['md5'])) {
             $md5list = explode(",", $_GET['md5']);
             foreach ($md5list as $md5) {
-                $results[] = Image::by_hash($md5);
+                $results[] = Post::by_hash($md5);
             }
             $count = count($results);
         } elseif (isset($_GET['id'])) {
             $idlist = explode(",", $_GET['id']);
             foreach ($idlist as $id) {
-                $results[] = Image::by_id(int_escape($id));
+                $results[] = Post::by_id(int_escape($id));
             }
             $count = count($results);
         } else {
@@ -188,8 +188,8 @@ class DanbooruApi extends Extension
             }
 
             $tags = isset($_GET['tags']) ? Tag::explode($_GET['tags']) : [];
-            $count = Image::count_images($tags);
-            $results = Image::find_images(max($start, 0), min($limit, 100), $tags);
+            $count = Post::count_images($tags);
+            $results = Post::find_images(max($start, 0), min($limit, 100), $tags);
         }
 
         // Now we have the array $results filled with Image objects
@@ -317,7 +317,7 @@ class DanbooruApi extends Extension
         // It is also currently broken due to some confusion over file variable ($tmp_filename?)
 
         // Does it exist already?
-        $existing = Image::by_hash($hash);
+        $existing = Post::by_hash($hash);
         if (!is_null($existing)) {
             $page->set_code(409);
             $page->add_http_header("X-Danbooru-Errors: duplicate");
@@ -346,7 +346,7 @@ class DanbooruApi extends Extension
             //log_debug("danbooru_api", "send_event(".var_export($nevent,TRUE).")");
             send_event($nevent);
             // If it went ok, grab the id for the newly uploaded image and pass it in the header
-            $newimg = Image::by_hash($hash);        // FIXME: Unsupported file doesn't throw an error?
+            $newimg = Post::by_hash($hash);        // FIXME: Unsupported file doesn't throw an error?
             $newid = make_link("post/view/" . $newimg->id);
             if ($danboorup_kludge) {
                 $newid = make_http($newid);

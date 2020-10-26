@@ -15,7 +15,7 @@ class ApiImagesController extends AApiController
         }
         $id = intval($fourth_arg);
 
-        $image = Image::by_id($id);
+        $image = Post::by_id($id);
 
         if ($image===null) {
             throw new SCoreException("Image $id not found");
@@ -39,7 +39,7 @@ class ApiImagesController extends AApiController
         }
     }
 
-    private function set_tags(Image $image, array $tags, bool $replace)
+    private function set_tags(Post $image, array $tags, bool $replace)
     {
         global $user;
         if ($user->can(Permissions::EDIT_IMAGE_TAG)) {

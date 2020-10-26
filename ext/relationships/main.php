@@ -23,8 +23,8 @@ class Relationships extends Extension
 
     public function onInitExt(InitExtEvent $event)
     {
-        Image::$bool_props[] = "has_children";
-        Image::$int_props[] = "parent_id";
+        Post::$bool_props[] = "has_children";
+        Post::$int_props[] = "parent_id";
     }
 
     public function onDatabaseUpgrade(DatabaseUpgradeEvent $event)
@@ -151,7 +151,7 @@ class Relationships extends Extension
         if ($old_parent == $event->parent_id) {
             return;  // no change
         }
-        if (!Image::by_id($event->parent_id) || !Image::by_id($event->child_id)) {
+        if (!Post::by_id($event->parent_id) || !Post::by_id($event->child_id)) {
             return;  // one of the images doesn't exist
         }
 
@@ -163,7 +163,7 @@ class Relationships extends Extension
         }
     }
 
-    public static function get_children(Image $image, int $omit = null): array
+    public static function get_children(Post $image, int $omit = null): array
     {
         global $database;
         $results = $database->get_all_iterable("SELECT * FROM images WHERE parent_id = :pid ", ["pid"=>$image->id]);
@@ -172,7 +172,7 @@ class Relationships extends Extension
             if ($result["id"]==$omit) {
                 continue;
             }
-            $output[] = new Image($result);
+            $output[] = new Post($result);
         }
         return $output;
     }

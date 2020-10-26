@@ -8,7 +8,7 @@ class ImageAdditionEvent extends Event
     /** @var User */
     public $user;
 
-    /** @var Image */
+    /** @var Post */
     public $image;
 
     public $merged = false;
@@ -18,7 +18,7 @@ class ImageAdditionEvent extends Event
      * information. Also calls TagSetEvent to set the tags for
      * this new image.
      */
-    public function __construct(Image $image)
+    public function __construct(Post $image)
     {
         parent::__construct();
         $this->image = $image;
@@ -34,7 +34,7 @@ class ImageAdditionException extends SCoreException
  */
 class ImageDeletionEvent extends Event
 {
-    /** @var Image */
+    /** @var Post */
     public $image;
 
     /** @var bool */
@@ -46,7 +46,7 @@ class ImageDeletionEvent extends Event
      * Used by things like tags and comments handlers to
      * clean out related rows in their tables.
      */
-    public function __construct(Image $image, bool $force = false)
+    public function __construct(Post $image, bool $force = false)
     {
         parent::__construct();
         $this->image = $image;
@@ -61,7 +61,7 @@ class ImageReplaceEvent extends Event
 {
     /** @var int */
     public $id;
-    /** @var Image */
+    /** @var Post */
     public $image;
 
     /**
@@ -71,7 +71,7 @@ class ImageReplaceEvent extends Event
      * file, leaving the tags and such unchanged. Also removes
      * the old image file and thumbnail from the disk.
      */
-    public function __construct(int $id, Image $image)
+    public function __construct(int $id, Post $image)
     {
         parent::__construct();
         $this->id = $id;
@@ -127,10 +127,10 @@ class ParseLinkTemplateEvent extends Event
     public $text;
     /** @var string */
     public $original;
-    /** @var Image */
+    /** @var Post */
     public $image;
 
-    public function __construct(string $link, Image $image)
+    public function __construct(string $link, Post $image)
     {
         parent::__construct();
         $this->link = $link;

@@ -373,7 +373,7 @@ class Notes extends Extension
 
         $images = [];
         while ($row = $result->fetch()) {
-            $images[] = [Image::by_id($row["image_id"])];
+            $images[] = [Post::by_id($row["image_id"])];
         }
 
         $this->theme->display_note_list($images, $pageNumber + 1, $totalPages);
@@ -403,7 +403,7 @@ class Notes extends Extension
 
         $images = [];
         while ($row = $result->fetch()) {
-            $images[] = [Image::by_id($row["image_id"])];
+            $images[] = [Post::by_id($row["image_id"])];
         }
 
         $this->theme->display_note_requests($images, $pageNumber + 1, $totalPages);

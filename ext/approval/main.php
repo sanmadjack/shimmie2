@@ -19,7 +19,7 @@ class Approval extends Extension
         $config->set_default_bool(ApprovalConfig::IMAGES, false);
         $config->set_default_bool(ApprovalConfig::COMMENTS, false);
 
-        Image::$bool_props[] = "approved";
+        Post::$bool_props[] = "approved";
     }
 
     public function onPageRequest(PageRequestEvent $event)
@@ -187,7 +187,7 @@ class Approval extends Extension
         );
     }
 
-    private function check_permissions(Image $image): bool
+    private function check_permissions(Post $image): bool
     {
         global $user, $config;
 

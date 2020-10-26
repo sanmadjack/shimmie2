@@ -11,16 +11,16 @@
  */
 class DisplayingImageEvent extends Event
 {
-    /** @var Image  */
+    /** @var Post  */
     public $image;
 
-    public function __construct(Image $image)
+    public function __construct(Post $image)
     {
         parent::__construct();
         $this->image = $image;
     }
 
-    public function get_image(): Image
+    public function get_image(): Post
     {
         return $this->image;
     }

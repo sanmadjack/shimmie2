@@ -33,7 +33,7 @@ class TagEditTheme extends Themelet
         return $html;
     }
 
-    public function get_tag_editor_html(Image $image): string
+    public function get_tag_editor_html(Post $image): string
     {
         global $user;
 
@@ -64,7 +64,7 @@ class TagEditTheme extends Themelet
 		";
     }
 
-    public function get_user_editor_html(Image $image): string
+    public function get_user_editor_html(Post $image): string
     {
         global $user;
         $h_owner = html_escape($image->get_owner()->name);
@@ -87,7 +87,7 @@ class TagEditTheme extends Themelet
 		";
     }
 
-    public function get_source_editor_html(Image $image): string
+    public function get_source_editor_html(Post $image): string
     {
         global $user;
         $h_source = html_escape($image->get_source());
@@ -125,7 +125,7 @@ class TagEditTheme extends Themelet
         return "Unknown";
     }
 
-    public function get_lock_editor_html(Image $image): string
+    public function get_lock_editor_html(Post $image): string
     {
         global $user;
         $b_locked = $image->is_locked() ? "Yes (Only admins may edit these details)" : "No";

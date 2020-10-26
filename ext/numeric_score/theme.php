@@ -2,7 +2,7 @@
 
 class NumericScoreTheme extends Themelet
 {
-    public function get_voter(Image $image)
+    public function get_voter(Post $image)
     {
         global $user, $page;
         $i_image_id = $image->id;

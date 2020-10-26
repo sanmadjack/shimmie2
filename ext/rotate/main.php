@@ -59,7 +59,7 @@ class RotateImage extends Extension
                 throw new ImageRotateException("Can not rotate Image: No valid Image ID given.");
             }
 
-            $image = Image::by_id($image_id);
+            $image = Post::by_id($image_id);
             if (is_null($image)) {
                 $this->theme->display_error(404, "Image not found", "No image in the database has the ID #$image_id");
             } else {
@@ -100,13 +100,13 @@ class RotateImage extends Extension
             throw new ImageRotateException("Invalid options for rotation angle. ($deg)");
         }
 
-        $image_obj = Image::by_id($image_id);
+        $image_obj = Post::by_id($image_id);
         $hash = $image_obj->hash;
         if (is_null($hash)) {
             throw new ImageRotateException("Image does not have a hash associated with it.");
         }
 
-        $image_filename  = warehouse_path(Image::IMAGE_DIR, $hash);
+        $image_filename  = warehouse_path(Post::IMAGE_DIR, $hash);
         if (file_exists($image_filename)===false) {
             throw new ImageRotateException("$image_filename does not exist.");
         }
@@ -166,7 +166,7 @@ class RotateImage extends Extension
 
         list($new_width, $new_height) = getimagesize($tmp_filename);
 
-        $new_image = new Image();
+        $new_image = new Post();
         $new_image->hash = md5_file($tmp_filename);
         $new_image->filesize = filesize($tmp_filename);
         $new_image->filename = 'rotated-'.$image_obj->filename;
@@ -174,7 +174,7 @@ class RotateImage extends Extension
         $new_image->height = $new_height;
 
         /* Move the new image into the main storage location */
-        $target = warehouse_path(Image::IMAGE_DIR, $new_image->hash);
+        $target = warehouse_path(Post::IMAGE_DIR, $new_image->hash);
         if (!@copy($tmp_filename, $target)) {
             throw new ImageRotateException("Failed to copy new image file from temporary location ({$tmp_filename}) to archive ($target)");
         }

@@ -33,7 +33,7 @@ class BulkImportExport extends DataHandlerExtension
                     $item = array_pop($json_data);
                     $database->begin_transaction();
                     try {
-                        $image = Image::by_hash($item->hash);
+                        $image = Post::by_hash($item->hash);
                         if ($image!=null) {
                             $skipped++;
                             log_info(BulkImportExportInfo::KEY, "Image $item->hash already present, skipping");
@@ -55,7 +55,7 @@ class BulkImportExport extends DataHandlerExtension
                             throw new SCoreException("Unable to import file $item->hash");
                         }
 
-                        $image = Image::by_id($id);
+                        $image = Post::by_id($id);
 
                         if ($image==null) {
                             throw new SCoreException("Unable to import file $item->hash");
@@ -121,7 +121,7 @@ class BulkImportExport extends DataHandlerExtension
 
             if ($zip->open($zip_filename, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE) === true) {
                 foreach ($event->items as $image) {
-                    $img_loc = warehouse_path(Image::IMAGE_DIR, $image->hash, false);
+                    $img_loc = warehouse_path(Post::IMAGE_DIR, $image->hash, false);
 
                     $export_event = new BulkExportEvent($image);
                     send_event($export_event);

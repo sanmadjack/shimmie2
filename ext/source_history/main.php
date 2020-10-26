@@ -155,7 +155,7 @@ class SourceHistory extends Extension
 
         log_debug("source_history", 'Reverting source of >>'.$stored_image_id.' to ['.$stored_source.']');
 
-        $image = Image::by_id($stored_image_id);
+        $image = Post::by_id($stored_image_id);
 
         if (is_null($image)) {
             die('Error: No image with the id ('.$stored_image_id.') was found. Perhaps the image was deleted while processing this request.');
@@ -322,7 +322,7 @@ class SourceHistory extends Extension
 
                 log_debug("source_history", 'Reverting source of >>'.$stored_image_id.' to ['.$stored_source.']');
 
-                $image = Image::by_id($stored_image_id);
+                $image = Post::by_id($stored_image_id);
 
                 if (is_null($image)) {
                     die('Error: No image with the id ('.$stored_image_id.') was found. Perhaps the image was deleted while processing this request.');
@@ -340,7 +340,7 @@ class SourceHistory extends Extension
     /**
      * This function is called just before an images source is changed.
      */
-    private function add_source_history(Image $image, string $source)
+    private function add_source_history(Post $image, string $source)
     {
         global $database, $config, $user;
 

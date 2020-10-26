@@ -2,7 +2,7 @@
 
 class CustomTagEditTheme extends TagEditTheme
 {
-    public function get_tag_editor_html(Image $image): string
+    public function get_tag_editor_html(Post $image): string
     {
         $h_tags = html_escape($image->get_tag_list());
         return "
@@ -15,7 +15,7 @@ class CustomTagEditTheme extends TagEditTheme
 		";
     }
 
-    public function get_source_editor_html(Image $image): string
+    public function get_source_editor_html(Post $image): string
     {
         global $user;
         $h_source = html_escape($image->get_source());

@@ -70,7 +70,7 @@ class Index extends Extension
                     return;
                 }
 
-                $total_pages = Image::count_pages($search_terms);
+                $total_pages = Post::count_pages($search_terms);
                 $images = [];
 
                 if (SPEED_HAX && $total_pages > $fast_page_limit && !$user->can("big_search")) {
@@ -82,14 +82,14 @@ class Index extends Extension
                         // extra caching for the first few post/list pages
                         $images = $cache->get("post-list:$page_number");
                         if (!$images) {
-                            $images = Image::find_images(($page_number-1)*$page_size, $page_size, $search_terms);
+                            $images = Post::find_images(($page_number-1)*$page_size, $page_size, $search_terms);
                             $cache->set("post-list:$page_number", $images, 60);
                         }
                     }
                 }
 
                 if (!$images) {
-                    $images = Image::find_images(($page_number-1)*$page_size, $page_size, $search_terms);
+                    $images = Post::find_images(($page_number-1)*$page_size, $page_size, $search_terms);
                 }
             } catch (SearchTermParseException $stpe) {
                 // FIXME: display the error somewhere
@@ -159,7 +159,7 @@ class Index extends Extension
         }
         if ($event->cmd == "search") {
             $query = count($event->args) > 0 ? Tag::explode($event->args[0]) : [];
-            $items = Image::find_images(0, 1000, $query);
+            $items = Post::find_images(0, 1000, $query);
             foreach ($items as $item) {
                 print("{$item->hash}\n");
             }

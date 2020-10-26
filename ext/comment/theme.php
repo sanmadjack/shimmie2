@@ -128,7 +128,7 @@ class CommentListTheme extends Themelet
      *
      * #param Comment[] $comments
      */
-    public function display_image_comments(Image $image, array $comments, bool $postbox)
+    public function display_image_comments(Post $image, array $comments, bool $postbox)
     {
         global $page;
         $this->show_anon_id = true;

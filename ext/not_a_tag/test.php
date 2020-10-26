@@ -9,7 +9,7 @@ class NotATagTest extends ShimmiePHPUnitTestCase
 
         $this->log_in_as_user();
         $image_id = $this->post_image("tests/pbx_screenshot.jpg", "pbx");
-        $image = Image::by_id($image_id);
+        $image = Post::by_id($image_id);
 
         // Original
         $this->get_page("post/view/$image_id");

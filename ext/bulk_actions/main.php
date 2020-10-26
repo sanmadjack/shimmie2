@@ -208,7 +208,7 @@ class BulkActions extends Extension
     {
         foreach ($data as $id) {
             if (is_numeric($id)) {
-                $image = Image::by_id($id);
+                $image = Post::by_id($id);
                 if ($image!=null) {
                     yield $image;
                 }
@@ -219,7 +219,7 @@ class BulkActions extends Extension
     private function yield_search_results(string $query): Generator
     {
         $tags = Tag::explode($query);
-        return Image::find_images_iterable(0, null, $tags);
+        return Post::find_images_iterable(0, null, $tags);
     }
 
     private function sort_blocks($a, $b)

@@ -5,7 +5,7 @@ class TagEditTest extends ShimmiePHPUnitTestCase
     {
         $this->log_in_as_user();
         $image_id = $this->post_image("tests/pbx_screenshot.jpg", "pbx");
-        $image = Image::by_id($image_id);
+        $image = Post::by_id($image_id);
 
         // Original
         $this->get_page("post/view/$image_id");
@@ -21,7 +21,7 @@ class TagEditTest extends ShimmiePHPUnitTestCase
     {
         $this->log_in_as_user();
         $image_id = $this->post_image("tests/pbx_screenshot.jpg", "pbx");
-        $image = Image::by_id($image_id);
+        $image = Post::by_id($image_id);
 
         try {
             send_event(new TagSetEvent($image, []));
@@ -43,7 +43,7 @@ class TagEditTest extends ShimmiePHPUnitTestCase
     {
         $this->log_in_as_user();
         $image_id = $this->post_image("tests/pbx_screenshot.jpg", "pbx");
-        $image = Image::by_id($image_id);
+        $image = Post::by_id($image_id);
 
         send_event(new SourceSetEvent($image, "example.com"));
         send_event(new SourceSetEvent($image, "http://example.com"));

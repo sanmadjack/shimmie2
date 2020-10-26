@@ -102,7 +102,7 @@ class AdminPage extends Extension
         }
         if ($event->cmd == "regen-thumb") {
             $uid = $event->args[0];
-            $image = Image::by_id_or_hash($uid);
+            $image = Post::by_id_or_hash($uid);
             if ($image) {
                 send_event(new ThumbnailGenerationEvent($image->hash, $image->get_mime(), true));
             } else {

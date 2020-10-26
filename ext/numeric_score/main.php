@@ -36,9 +36,9 @@ class NumericScore extends Extension
         }
 
         $u_name = url_escape($event->display_user->name);
-        $n_up = Image::count_images(["upvoted_by={$event->display_user->name}"]);
+        $n_up = Post::count_images(["upvoted_by={$event->display_user->name}"]);
         $link_up = make_link("post/list/upvoted_by=$u_name/1");
-        $n_down = Image::count_images(["downvoted_by={$event->display_user->name}"]);
+        $n_down = Post::count_images(["downvoted_by={$event->display_user->name}"]);
         $link_down = make_link("post/list/downvoted_by=$u_name/1");
         $event->add_stats("<a href='$link_up'>$n_up Upvotes</a> / <a href='$link_down'>$n_down Downvotes</a>");
     }
@@ -152,7 +152,7 @@ class NumericScore extends Extension
             $result = $database->get_col($sql, $args);
             $images = [];
             foreach ($result as $id) {
-                $images[] = Image::by_id((int)$id);
+                $images[] = Post::by_id((int)$id);
             }
 
             $this->theme->view_popular($images, $dte);

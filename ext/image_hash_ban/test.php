@@ -21,7 +21,7 @@ class ImageBanTest extends ShimmiePHPUnitTestCase
 
         // Ban & delete
         send_event(new AddImageHashBanEvent($this->hash, "test hash ban"));
-        send_event(new ImageDeletionEvent(Image::by_id($image_id), true));
+        send_event(new ImageDeletionEvent(Post::by_id($image_id), true));
 
         // Check deleted
         $page = $this->get_page("post/view/$image_id");

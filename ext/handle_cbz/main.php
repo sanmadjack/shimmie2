@@ -22,10 +22,10 @@ class CBZFileHandler extends DataHandlerExtension
 
     protected function create_thumb(string $hash, string $mime): bool
     {
-        $cover = $this->get_representative_image(warehouse_path(Image::IMAGE_DIR, $hash));
+        $cover = $this->get_representative_image(warehouse_path(Post::IMAGE_DIR, $hash));
         create_scaled_image(
             $cover,
-            warehouse_path(Image::THUMBNAIL_DIR, $hash),
+            warehouse_path(Post::THUMBNAIL_DIR, $hash),
             get_thumbnail_max_size_scaled(),
             MimeType::get_for_file($cover),
             null

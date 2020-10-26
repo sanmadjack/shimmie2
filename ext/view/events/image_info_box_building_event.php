@@ -4,12 +4,12 @@ class ImageInfoBoxBuildingEvent extends Event
 {
     /** @var array  */
     public $parts = [];
-    /** @var Image  */
+    /** @var Post  */
     public $image;
     /** @var User  */
     public $user;
 
-    public function __construct(Image $image, User $user)
+    public function __construct(Post $image, User $user)
     {
         parent::__construct();
         $this->image = $image;

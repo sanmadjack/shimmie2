@@ -5,12 +5,12 @@ use function MicroHTML\IMG;
 
 class RandomImageTheme extends Themelet
 {
-    public function display_random(Page $page, Image $image)
+    public function display_random(Page $page, Post $image)
     {
         $page->add_block(new Block("Random Image", $this->build_random_html($image), "left", 8));
     }
 
-    public function build_random_html(Image $image, ?string $query = null): string
+    public function build_random_html(Post $image, ?string $query = null): string
     {
         $tsize = get_thumbnail_size($image->width, $image->height);
 

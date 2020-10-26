@@ -2,7 +2,7 @@
 
 class RelationshipsTheme extends Themelet
 {
-    public function relationship_info(Image $image)
+    public function relationship_info(Post $image)
     {
         global $page, $database;
 
@@ -25,7 +25,7 @@ class RelationshipsTheme extends Themelet
         }
     }
 
-    public function get_parent_editor_html(Image $image): string
+    public function get_parent_editor_html(Post $image): string
     {
         global $user;
 
@@ -54,23 +54,23 @@ class RelationshipsTheme extends Themelet
         <div class="command_example">
         <pre>parent=any</pre>
         <p>Returns images that have a parent.</p>
-        </div> 
+        </div>
         <div class="command_example">
         <pre>parent=none</pre>
         <p>Returns images that have no parent.</p>
-        </div> 
+        </div>
         <div class="command_example">
         <pre>parent=123</pre>
         <p>Returns images that have image 123 set as parent.</p>
-        </div> 
+        </div>
         <div class="command_example">
         <pre>child=any</pre>
         <p>Returns images that have at least 1 child.</p>
-        </div> 
+        </div>
         <div class="command_example">
         <pre>child=none</pre>
         <p>Returns images that have no children.</p>
-        </div> 
+        </div>
         ';
     }
 }

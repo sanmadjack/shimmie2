@@ -79,7 +79,7 @@ class Rule34 extends Extension
     {
         global $cache;
         if ($event->cmd == "wipe-thumb-cache") {
-            foreach (Image::find_images_iterable(0, null, Tag::explode($event->args[0])) as $image) {
+            foreach (Post::find_images_iterable(0, null, Tag::explode($event->args[0])) as $image) {
                 print($image->id . "\n");
                 $cache->delete("thumb-block:{$image->id}");
             }
@@ -143,8 +143,8 @@ class Rule34 extends Extension
                                 continue;
                             }
                             log_info("admin", "Cleaning {$hash}");
-                            @unlink(warehouse_path(Image::IMAGE_DIR, $hash));
-                            @unlink(warehouse_path(Image::THUMBNAIL_DIR, $hash));
+                            @unlink(warehouse_path(Post::IMAGE_DIR, $hash));
+                            @unlink(warehouse_path(Post::THUMBNAIL_DIR, $hash));
                             $database->notify("shm_image_bans", $hash);
                         }
                     }

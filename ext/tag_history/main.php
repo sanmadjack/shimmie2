@@ -153,8 +153,8 @@ class TagHistory extends Extension
         $stored_image_id = (int)$result['image_id'];
         $stored_tags = $result['tags'];
 
-        $image = Image::by_id($stored_image_id);
-        if (! $image instanceof Image) {
+        $image = Post::by_id($stored_image_id);
+        if (! $image instanceof Post) {
             throw new ImageDoesNotExist("Error: cannot find any image with the ID = ". $stored_image_id);
         }
 
@@ -318,8 +318,8 @@ class TagHistory extends Extension
                 $stored_image_id = (int)$result['image_id'];
                 $stored_tags = $result['tags'];
 
-                $image = Image::by_id($stored_image_id);
-                if (! $image instanceof Image) {
+                $image = Post::by_id($stored_image_id);
+                if (! $image instanceof Post) {
                     continue;
                     //throw new ImageDoesNotExist("Error: cannot find any image with the ID = ". $stored_image_id);
                 }
@@ -339,7 +339,7 @@ class TagHistory extends Extension
      *
      * #param string[] $tags
      */
-    private function add_tag_history(Image $image, array $tags)
+    private function add_tag_history(Post $image, array $tags)
     {
         global $database, $config, $user;
 

@@ -37,7 +37,7 @@ class RandomList extends Extension
 
             // generate random images
             for ($i = 0; $i < $images_per_page; $i++) {
-                $random_image = Image::by_random($search_terms);
+                $random_image = Post::by_random($search_terms);
                 if (!$random_image) {
                     continue;
                 }

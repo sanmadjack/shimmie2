@@ -205,7 +205,7 @@ class Upload extends Extension
                     throw new UploadException("Can not replace Image: No valid Image ID given.");
                 }
 
-                $image_old = Image::by_id($image_id);
+                $image_old = Post::by_id($image_id);
                 if (is_null($image_old)) {
                     throw new UploadException("Can not replace Image: No image with ID $image_id");
                 }

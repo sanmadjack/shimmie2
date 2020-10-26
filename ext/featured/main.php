@@ -27,7 +27,7 @@ class Featured extends Extension
                 }
             }
             if ($event->get_arg(0) == "download") {
-                $image = Image::by_id($config->get_int("featured_id"));
+                $image = Post::by_id($config->get_int("featured_id"));
                 if (!is_null($image)) {
                     $page->set_mode(PageMode::DATA);
                     $page->set_mime($image->get_mime());
@@ -35,7 +35,7 @@ class Featured extends Extension
                 }
             }
             if ($event->get_arg(0) == "view") {
-                $image = Image::by_id($config->get_int("featured_id"));
+                $image = Post::by_id($config->get_int("featured_id"));
                 if (!is_null($image)) {
                     send_event(new DisplayingImageEvent($image));
                 }
@@ -50,7 +50,7 @@ class Featured extends Extension
         if ($fid > 0) {
             $image = $cache->get("featured_image_object:$fid");
             if ($image === false) {
-                $image = Image::by_id($fid);
+                $image = Post::by_id($fid);
                 if ($image) { // make sure the object is fully populated before saving
                     $image->get_tag_array();
                 }

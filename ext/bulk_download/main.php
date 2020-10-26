@@ -51,7 +51,7 @@ class BulkDownload extends Extension
 
             if ($zip->open($zip_filename, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE) === true) {
                 foreach ($event->items as $image) {
-                    $img_loc = warehouse_path(Image::IMAGE_DIR, $image->hash, false);
+                    $img_loc = warehouse_path(Post::IMAGE_DIR, $image->hash, false);
                     $size_total += filesize($img_loc);
                     if ($size_total>$max_size) {
                         throw new BulkDownloadException("Bulk download limited to ".human_filesize($max_size));

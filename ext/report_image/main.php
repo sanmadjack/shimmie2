@@ -195,7 +195,7 @@ class ReportImage extends Extension
     /**
      * #return ImageReport[]
      */
-    public function get_reports(Image $image): array
+    public function get_reports(Post $image): array
     {
         global $database;
 
@@ -227,7 +227,7 @@ class ReportImage extends Extension
         $reports = [];
         foreach ($all_reports as $report) {
             $image_id = (int)$report['image_id'];
-            $image = Image::by_id($image_id);
+            $image = Post::by_id($image_id);
             if (is_null($image)) {
                 send_event(new RemoveReportedImageEvent((int)$report['id']));
                 continue;

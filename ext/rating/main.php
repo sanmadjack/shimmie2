@@ -63,12 +63,12 @@ add_rating(new ImageRating("e", "Explicit", "explicit", 1000));
 
 class RatingSetEvent extends Event
 {
-    /** @var Image */
+    /** @var Post */
     public $image;
     /** @var string  */
     public $rating;
 
-    public function __construct(Image $image, string $rating)
+    public function __construct(Post $image, string $rating)
     {
         parent::__construct();
         global $_shm_ratings;
@@ -115,7 +115,7 @@ class Ratings extends Extension
         }
     }
 
-    private function check_permissions(Image $image): bool
+    private function check_permissions(Post $image): bool
     {
         global $user;
 
@@ -310,7 +310,7 @@ class Ratings extends Extension
 
             $ratings = array_intersect(str_split($ratings), Ratings::get_user_class_privs($user));
             $rating = $ratings[0];
-            $image = Image::by_id($event->image_id);
+            $image = Post::by_id($event->image_id);
             $re = new RatingSetEvent($image, $rating);
             send_event($re);
         }
@@ -398,7 +398,7 @@ class Ratings extends Extension
             } else {
                 $n = 0;
                 while (true) {
-                    $images = Image::find_images($n, 100, Tag::explode($_POST["query"]));
+                    $images = Post::find_images($n, 100, Tag::explode($_POST["query"]));
                     if (count($images) == 0) {
                         break;
                     }

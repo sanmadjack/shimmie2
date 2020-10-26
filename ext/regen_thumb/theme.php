@@ -18,7 +18,7 @@ class RegenThumbTheme extends Themelet
     /**
      * Show a link to the new thumbnail.
      */
-    public function display_results(Page $page, Image $image)
+    public function display_results(Page $page, Post $image)
     {
         $page->set_title("Thumbnail Regenerated");
         $page->set_heading("Thumbnail Regenerated");

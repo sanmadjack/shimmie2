@@ -7,7 +7,7 @@ class ImageDownloadingEvent extends Event
     public $path;
     public $file_modified = false;
 
-    public function __construct(Image $image, String $path, string $mime)
+    public function __construct(Post $image, String $path, string $mime)
     {
         $this->image = $image;
         $this->path = $path;

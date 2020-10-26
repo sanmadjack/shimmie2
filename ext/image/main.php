@@ -79,7 +79,7 @@ class ImageIO extends Extension
         if ($event->page_matches("image/delete")) {
             global $page, $user;
             if ($user->can(Permissions::DELETE_IMAGE) && isset($_POST['image_id']) && $user->check_auth_token()) {
-                $image = Image::by_id(int_escape($_POST['image_id']));
+                $image = Post::by_id(int_escape($_POST['image_id']));
                 if ($image) {
                     send_event(new ImageDeletionEvent($image));
 
@@ -94,7 +94,7 @@ class ImageIO extends Extension
         } elseif ($event->page_matches("image/replace")) {
             global $page, $user;
             if ($user->can(Permissions::REPLACE_IMAGE) && isset($_POST['image_id']) && $user->check_auth_token()) {
-                $image = Image::by_id(int_escape($_POST['image_id']));
+                $image = Post::by_id(int_escape($_POST['image_id']));
                 if ($image) {
                     $page->set_mode(PageMode::REDIRECT);
                     $page->set_redirect(make_link('upload/replace/'.$image->id));
@@ -142,7 +142,7 @@ class ImageIO extends Extension
             /*
              * Check for an existing image
              */
-            $existing = Image::by_hash($image->hash);
+            $existing = Post::by_hash($image->hash);
             if (!is_null($existing)) {
                 $handler = $config->get_string(ImageConfig::UPLOAD_COLLISION_HANDLER);
                 if ($handler == ImageConfig::COLLISION_MERGE || isset($_GET['update'])) {
@@ -155,7 +155,7 @@ class ImageIO extends Extension
                         send_event(new SourceSetEvent($existing, $_GET['source']));
                     }
                     $event->merged = true;
-                    $event->image = Image::by_id($existing->id);
+                    $event->image = Post::by_id($existing->id);
                     return;
                 } else {
                     $error = "Image <a href='".make_link("post/view/{$existing->id}")."'>{$existing->id}</a> ".
@@ -202,13 +202,13 @@ class ImageIO extends Extension
             );
 
             /* Check to make sure the image exists. */
-            $existing = Image::by_id($id);
+            $existing = Post::by_id($id);
 
             if (is_null($existing)) {
                 throw new ImageReplaceException("Image to replace does not exist!");
             }
 
-            $duplicate = Image::by_hash($image->hash);
+            $duplicate = Post::by_hash($image->hash);
             if (!is_null($duplicate) && $duplicate->id!=$id) {
                 $error = "Image <a href='" . make_link("post/view/{$duplicate->id}") . "'>{$duplicate->id}</a> " .
                     "already has hash {$image->hash}:<p>" . $this->theme->build_thumb_html($duplicate);
@@ -245,7 +245,7 @@ class ImageIO extends Extension
     public function onUserPageBuilding(UserPageBuildingEvent $event)
     {
         $u_name = url_escape($event->display_user->name);
-        $i_image_count = Image::count_images(["user={$event->display_user->name}"]);
+        $i_image_count = Post::count_images(["user={$event->display_user->name}"]);
         $i_days_old = ((time() - strtotime($event->display_user->join_date)) / 86400) + 1;
         $h_image_rate = sprintf("%.1f", ($i_image_count / $i_days_old));
         $images_link = make_link("post/list/user=$u_name/1");
@@ -315,7 +315,7 @@ class ImageIO extends Extension
     {
         global $config, $page;
 
-        $image = Image::by_id($image_id);
+        $image = Post::by_id($image_id);
         if (!is_null($image)) {
             if ($type == "thumb") {
                 $mime = $config->get_string(ImageConfig::THUMB_MIME);

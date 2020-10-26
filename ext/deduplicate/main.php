@@ -32,7 +32,7 @@ class ComparisonSet
 
     public $similar_items = [];
 
-    public function __construct(Image $image)
+    public function __construct(Post $image)
     {
         $this->image = $image;
     }
@@ -51,7 +51,7 @@ class SimilarItem
 {
     /** @var float */
     public $similarity;
-    /** @var Image */
+    /** @var Post */
     public $image;
 
     public $children = [];
@@ -60,7 +60,7 @@ class SimilarItem
 
     public $parent = null;
 
-    public function __construct(Image $image, float $similarity)
+    public function __construct(Post $image, float $similarity)
     {
         $this->image = $image;
         $this->similarity = $similarity;
@@ -138,7 +138,7 @@ class Deduplicate extends Extension
     {
         global $config, $database;
         if ($config->get_bool(DeduplicateConfig::SHOW_SAVED)) {
-            $results = Image::find_images(0, 10, ["similar:".$event->image->id]);
+            $results = Post::find_images(0, 10, ["similar:".$event->image->id]);
 
             $event->add_part($this->theme->show_similar_items($results), 35);
         }
@@ -394,7 +394,7 @@ class Deduplicate extends Extension
         }
     }
 
-    public function save_perceptual_hash(Image $image, $hash)
+    public function save_perceptual_hash(Post $image, $hash)
     {
         global $database;
 
@@ -630,8 +630,8 @@ class Deduplicate extends Extension
 
     private function merge_items(int $source, int $target)
     {
-        $source_image = Image::by_id($source);
-        $target_image = Image::by_id($target);
+        $source_image = Post::by_id($source);
+        $target_image = Post::by_id($target);
 
         $source_tags = $source_image->get_tag_array() ?? [];
         $target_tags = $target_image->get_tag_array() ?? [];
@@ -650,18 +650,18 @@ class Deduplicate extends Extension
 
     private function delete_item_by_id(int $item)
     {
-        $this->delete_item(Image::by_id($item), "Deleted via de-duplicate");
+        $this->delete_item(Post::by_id($item), "Deleted via de-duplicate");
     }
 
 
-    private function delete_item(Image $item, String $reason)
+    private function delete_item(Post $item, String $reason)
     {
         send_event(new AddImageHashBanEvent($item->hash, $reason));
         send_event(new ImageDeletionEvent($item));
     }
 
 
-    private function calculate_hash(Image $image)
+    private function calculate_hash(Post $image)
     {
         global $database;
 
@@ -685,7 +685,7 @@ class Deduplicate extends Extension
     {
         global $database;
 
-        $image = Image::by_id($id);
+        $image = Post::by_id($id);
 
         if ($image == null) {
             throw new DeduplicateException("Image ID not found: $id");
@@ -697,7 +697,7 @@ class Deduplicate extends Extension
         $relationships = Extension::is_enabled(RelationshipsInfo::KEY);
         if ($relationships) {
             if ($image->parent_id) {
-                $set->parent = Image::by_id($image->parent_id);
+                $set->parent = Post::by_id($image->parent_id);
                 $set->siblings= Relationships::get_children($set->parent, $image->id);
             }
             $set->children = Relationships::get_children($image);
@@ -719,13 +719,13 @@ class Deduplicate extends Extension
             if ($other_id == $id) {
                 $other_id = $sub_item["image_2_id"];
             }
-            $image = Image::by_id($other_id);
+            $image = Post::by_id($other_id);
 
             $si = new SimilarItem($image, floatval($sub_item["similarity"]));
 
             if ($relationships) {
                 if ($image->parent_id) {
-                    $si->parent = Image::by_id($image->parent_id);
+                    $si->parent = Post::by_id($image->parent_id);
                     $si->siblings= Relationships::get_children($si->parent, $image->id);
                 }
                 $si->children = Relationships::get_children($image);

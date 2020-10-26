@@ -6,7 +6,7 @@ class ArtistsTest extends ShimmiePHPUnitTestCase
         global $user;
         $this->log_in_as_user();
         $image_id = $this->post_image("tests/pbx_screenshot.jpg", "pbx computer screenshot");
-        $image = Image::by_id($image_id);
+        $image = Post::by_id($image_id);
 
         send_event(new AuthorSetEvent($image, $user, "bob"));
 

@@ -2,10 +2,10 @@
 
 class ImageInfoSetEvent extends Event
 {
-    /** @var Image */
+    /** @var Post */
     public $image;
 
-    public function __construct(Image $image)
+    public function __construct(Post $image)
     {
         parent::__construct();
         $this->image = $image;

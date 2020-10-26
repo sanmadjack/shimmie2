@@ -3,7 +3,7 @@ use function MicroHTML\INPUT;
 
 class FavoritesTheme extends Themelet
 {
-    public function get_voter_html(Image $image, $is_favorited)
+    public function get_voter_html(Post $image, $is_favorited)
     {
         $name  = $is_favorited ? "unset" : "set";
         $label = $is_favorited ? "Un-Favorite" : "Favorite";

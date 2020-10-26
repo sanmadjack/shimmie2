@@ -49,7 +49,7 @@ class TagEditCloud extends Extension
         $sb->add_text_option("tageditcloud_ignoretags");
     }
 
-    private function build_tag_map(Image $image): ?string
+    private function build_tag_map(Post $image): ?string
     {
         global $database, $config;
 
@@ -202,7 +202,7 @@ class TagEditCloud extends Extension
         return "<div id='tageditcloud' class='tageditcloud'>{$html}</div>"; // FIXME: stupidasallhell
     }
 
-    private function can_tag(Image $image): bool
+    private function can_tag(Post $image): bool
     {
         global $user;
         return ($user->can(Permissions::EDIT_IMAGE_TAG) && (!$image->is_locked() || $user->can(Permissions::EDIT_IMAGE_LOCK)));

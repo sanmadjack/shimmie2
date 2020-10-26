@@ -18,7 +18,7 @@ class Trash extends Extension
 
     public function onInitExt(InitExtEvent $event)
     {
-        Image::$bool_props[] = "trash";
+        Post::$bool_props[] = "trash";
     }
 
     public function onPageRequest(PageRequestEvent $event)
@@ -41,7 +41,7 @@ class Trash extends Extension
         }
     }
 
-    private function check_permissions(Image $image): bool
+    private function check_permissions(Post $image): bool
     {
         global $user;
 

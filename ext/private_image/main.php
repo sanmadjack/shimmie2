@@ -16,7 +16,7 @@ class PrivateImage extends Extension
     {
         global $config;
 
-        Image::$bool_props[] = "private ";
+        Post::$bool_props[] = "private ";
     }
 
     public function onInitUserConfig(InitUserConfigEvent $event)
@@ -47,7 +47,7 @@ class PrivateImage extends Extension
             if (empty($image_id)) {
                 throw new SCoreException("Can not make image private: No valid Image ID given.");
             }
-            $image = Image::by_id($image_id);
+            $image = Post::by_id($image_id);
             if ($image==null) {
                 throw new SCoreException("Image not found.");
             }
@@ -69,7 +69,7 @@ class PrivateImage extends Extension
             if (empty($image_id)) {
                 throw new SCoreException("Can not make image public: No valid Image ID given.");
             }
-            $image = Image::by_id($image_id);
+            $image = Post::by_id($image_id);
             if ($image==null) {
                 throw new SCoreException("Image not found.");
             }

@@ -5,7 +5,7 @@ class TranscodeImageTheme extends Themelet
     /*
      * Display a link to resize an image
      */
-    public function get_transcode_html(Image $image, array $options)
+    public function get_transcode_html(Post $image, array $options)
     {
         $html = "
 			".make_form(

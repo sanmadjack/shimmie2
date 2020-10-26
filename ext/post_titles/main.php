@@ -89,7 +89,7 @@ class PostTitles extends Extension
         log_info("post_titles", "Title for >>{$image_id} set to: ".$title);
     }
 
-    public static function get_title(Image $image): string
+    public static function get_title(Post $image): string
     {
         global $config;
 

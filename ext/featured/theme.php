@@ -6,7 +6,7 @@ use function MicroHTML\IMG;
 
 class FeaturedTheme extends Themelet
 {
-    public function display_featured(Page $page, Image $image): void
+    public function display_featured(Page $page, Post $image): void
     {
         $page->add_block(new Block("Featured Post", $this->build_featured_html($image), "left", 3));
     }
@@ -20,7 +20,7 @@ class FeaturedTheme extends Themelet
         );
     }
 
-    public function build_featured_html(Image $image, ?string $query=null): string
+    public function build_featured_html(Post $image, ?string $query=null): string
     {
         $tsize = get_thumbnail_size($image->width, $image->height);
 

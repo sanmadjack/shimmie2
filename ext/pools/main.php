@@ -98,7 +98,7 @@ class Pool
     }
 }
 
-function _image_to_id(Image $image): int
+function _image_to_id(Post $image): int
 {
     return $image->id;
 }
@@ -269,7 +269,7 @@ class Pools extends Extension
                         $result = $database->execute("SELECT image_id FROM pool_images WHERE pool_id=:pid ORDER BY image_order ASC", ["pid" => $pool_id]);
                         $images = [];
                         while ($row = $result->fetch()) {
-                            $images[] = Image::by_id((int)$row["image_id"]);
+                            $images[] = Post::by_id((int)$row["image_id"]);
                         }
                         $this->theme->edit_pool($page, $pool, $images);
                     } else {
@@ -295,7 +295,7 @@ class Pools extends Extension
                                         WHERE pool_id=:pid AND i.id=:iid",
                                     ["pid" => $pool_id, "iid" => (int)$row['image_id']]
                                 );
-                                $images[] = ($image ? new Image($image) : null);
+                                $images[] = ($image ? new Post($image) : null);
                             }
 
                             $this->theme->edit_order($page, $pool, $images);
@@ -325,7 +325,7 @@ class Pools extends Extension
 
                 case "import":
                     if ($this->have_permission($user, $pool)) {
-                        $images = Image::find_images(
+                        $images = Post::find_images(
                             0,
                             $config->get_int(PoolsConfig::MAX_IMPORT_RESULTS, 1000),
                             Tag::explode($_POST["pool_tag"])
@@ -797,7 +797,7 @@ class Pools extends Extension
 
         $images = [];
         foreach ($result as $singleResult) {
-            $images[] = Image::by_id((int)$singleResult["image_id"]);
+            $images[] = Post::by_id((int)$singleResult["image_id"]);
         }
 
         $this->theme->view_pool($pool, $images, $pageNumber + 1, $totalPages);

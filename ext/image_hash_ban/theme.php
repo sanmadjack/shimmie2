@@ -17,7 +17,7 @@ class ImageBanTheme extends Themelet
     /*
      * Display a link to delete an image
      */
-    public function get_buttons_html(Image $image)
+    public function get_buttons_html(Post $image)
     {
         return (string)SHM_SIMPLE_FORM(
             "image_hash_ban/add",

@@ -1,7 +1,7 @@
 <?php
 class Themelet extends BaseThemelet
 {
-    public function build_thumb_html(Image $image): string
+    public function build_thumb_html(Post $image): string
     {
         global $cache, $config;
 

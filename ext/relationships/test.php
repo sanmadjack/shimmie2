@@ -13,9 +13,9 @@ class RelationshipsTest extends ShimmiePHPUnitTestCase
         $image_id_2 = $this->post_image("tests/bedroom_workshop.jpg", "pbx");
         $image_id_3 = $this->post_image("tests/favicon.png", "pbx");
 
-        $image_1 = Image::by_id($image_id_1);
-        $image_2 = Image::by_id($image_id_2);
-        $image_3 = Image::by_id($image_id_3);
+        $image_1 = Post::by_id($image_id_1);
+        $image_2 = Post::by_id($image_id_2);
+        $image_3 = Post::by_id($image_id_3);
 
         $this->assertNull($image_1->parent_id);
         $this->assertNull($image_2->parent_id);
@@ -37,9 +37,9 @@ class RelationshipsTest extends ShimmiePHPUnitTestCase
         send_event(new ImageRelationshipSetEvent($image_2->id, $image_1->id));
 
         // refresh data from database
-        $image_1 = Image::by_id($image_1->id);
-        $image_2 = Image::by_id($image_2->id);
-        $image_3 = Image::by_id($image_3->id);
+        $image_1 = Post::by_id($image_1->id);
+        $image_2 = Post::by_id($image_2->id);
+        $image_3 = Post::by_id($image_3->id);
 
         $this->assertNull($image_1->parent_id);
         $this->assertEquals($image_1->id, $image_2->parent_id);
@@ -60,9 +60,9 @@ class RelationshipsTest extends ShimmiePHPUnitTestCase
         send_event(new ImageRelationshipSetEvent($image_2->id, $image_3->id));
 
         // refresh data from database
-        $image_1 = Image::by_id($image_1->id);
-        $image_2 = Image::by_id($image_2->id);
-        $image_3 = Image::by_id($image_3->id);
+        $image_1 = Post::by_id($image_1->id);
+        $image_2 = Post::by_id($image_2->id);
+        $image_3 = Post::by_id($image_3->id);
 
         $this->assertNull($image_1->parent_id);
         $this->assertEquals($image_3->id, $image_2->parent_id);
@@ -104,9 +104,9 @@ class RelationshipsTest extends ShimmiePHPUnitTestCase
         // FIXME: send_event(new ImageRelationshipSetEvent($image_2->id, null));
 
         // refresh data from database
-        $image_1 = Image::by_id($image_1->id);
-        $image_2 = Image::by_id($image_2->id);
-        $image_3 = Image::by_id($image_3->id);
+        $image_1 = Post::by_id($image_1->id);
+        $image_2 = Post::by_id($image_2->id);
+        $image_3 = Post::by_id($image_3->id);
 
         $this->assertNull($image_1->parent_id);
         $this->assertNull($image_2->parent_id);
@@ -127,9 +127,9 @@ class RelationshipsTest extends ShimmiePHPUnitTestCase
         $image_id_2 = $this->post_image("tests/bedroom_workshop.jpg", "pbx");
         $image_id_3 = $this->post_image("tests/favicon.png", "pbx");
 
-        $image_1 = Image::by_id($image_id_1);
-        $image_2 = Image::by_id($image_id_2);
-        $image_3 = Image::by_id($image_id_3);
+        $image_1 = Post::by_id($image_id_1);
+        $image_2 = Post::by_id($image_id_2);
+        $image_3 = Post::by_id($image_id_3);
 
         $this->assertNull($image_1->parent_id);
         $this->assertNull($image_2->parent_id);
@@ -151,9 +151,9 @@ class RelationshipsTest extends ShimmiePHPUnitTestCase
         send_event(new TagSetEvent($image_2, ["pbx", "parent:{$image_1->id}"]));
 
         // refresh data from database
-        $image_1 = Image::by_id($image_1->id);
-        $image_2 = Image::by_id($image_2->id);
-        $image_3 = Image::by_id($image_3->id);
+        $image_1 = Post::by_id($image_1->id);
+        $image_2 = Post::by_id($image_2->id);
+        $image_3 = Post::by_id($image_3->id);
 
         $this->assertEquals(["pbx"], $image_2->get_tag_array());
         $this->assertNull($image_1->parent_id);
@@ -176,9 +176,9 @@ class RelationshipsTest extends ShimmiePHPUnitTestCase
         send_event(new TagSetEvent($image_3, ["pbx", "child:{$image_1->id}"]));
 
         // refresh data from database
-        $image_1 = Image::by_id($image_1->id);
-        $image_2 = Image::by_id($image_2->id);
-        $image_3 = Image::by_id($image_3->id);
+        $image_1 = Post::by_id($image_1->id);
+        $image_2 = Post::by_id($image_2->id);
+        $image_3 = Post::by_id($image_3->id);
 
         $this->assertEquals(["pbx"], $image_3->get_tag_array());
         $this->assertEquals($image_3->id, $image_1->parent_id);
@@ -206,7 +206,7 @@ class RelationshipsTest extends ShimmiePHPUnitTestCase
         send_event(new TagSetEvent($image_2, ["pbx", "parent:none"]));
 
         // refresh data from database
-        $image_2 = Image::by_id($image_2->id);
+        $image_2 = Post::by_id($image_2->id);
 
         // check it was unset
         $this->assertEquals(["pbx"], $image_2->get_tag_array());

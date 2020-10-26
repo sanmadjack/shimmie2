@@ -20,7 +20,7 @@ class FlashFileHandler extends DataHandlerExtension
     protected function create_thumb(string $hash, string $type): bool
     {
         if (!Media::create_thumbnail_ffmpeg($hash)) {
-            copy("ext/handle_flash/thumb.jpg", warehouse_path(Image::THUMBNAIL_DIR, $hash));
+            copy("ext/handle_flash/thumb.jpg", warehouse_path(Post::THUMBNAIL_DIR, $hash));
         }
         return true;
     }

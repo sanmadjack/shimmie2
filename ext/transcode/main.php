@@ -202,7 +202,7 @@ class TranscodeImage extends Extension
             } else {
                 throw new ImageTranscodeException("Can not resize Image: No valid Image ID given.");
             }
-            $image_obj = Image::by_id($image_id);
+            $image_obj = Post::by_id($image_id);
             if (is_null($image_obj)) {
                 $this->theme->display_error(404, "Image not found", "No image in the database has the ID #$image_id");
             } else {
@@ -340,13 +340,13 @@ class TranscodeImage extends Extension
 
 
 
-    private function transcode_and_replace_image(Image $image_obj, String $target_mime): Image
+    private function transcode_and_replace_image(Post $image_obj, String $target_mime): Post
     {
-        $original_file = warehouse_path(Image::IMAGE_DIR, $image_obj->hash);
+        $original_file = warehouse_path(Post::IMAGE_DIR, $image_obj->hash);
 
         $tmp_filename = $this->transcode_image($original_file, $image_obj->get_mime(), $target_mime);
 
-        $new_image = new Image();
+        $new_image = new Post();
         $new_image->hash = md5_file($tmp_filename);
         $new_image->filesize = filesize($tmp_filename);
         $new_image->filename = $image_obj->filename;
@@ -354,7 +354,7 @@ class TranscodeImage extends Extension
         $new_image->height = $image_obj->height;
 
         /* Move the new image into the main storage location */
-        $target = warehouse_path(Image::IMAGE_DIR, $new_image->hash);
+        $target = warehouse_path(Post::IMAGE_DIR, $new_image->hash);
         if (!@copy($tmp_filename, $target)) {
             throw new ImageTranscodeException("Failed to copy new image file from temporary location ({$tmp_filename}) to archive ($target)");
         }

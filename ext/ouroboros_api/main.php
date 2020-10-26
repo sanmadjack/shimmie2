@@ -163,7 +163,7 @@ class _SafeOuroborosImage
      */
     public $sample_width = null;
 
-    public function __construct(Image $img)
+    public function __construct(Post $img)
     {
         global $config;
         // author
@@ -456,7 +456,7 @@ class OuroborosAPI extends Extension
         global $config;
         $handler = $config->get_string(ImageConfig::UPLOAD_COLLISION_HANDLER);
         if (!empty($md5) && !($handler == ImageConfig::COLLISION_MERGE)) {
-            $img = Image::by_hash($md5);
+            $img = Post::by_hash($md5);
             if (!is_null($img)) {
                 $this->sendResponse(420, self::ERROR_POST_CREATE_DUPE);
                 return;
@@ -493,7 +493,7 @@ class OuroborosAPI extends Extension
             return;
         }
         if (!empty($meta['hash'])) {
-            $img = Image::by_hash($meta['hash']);
+            $img = Post::by_hash($meta['hash']);
             if (!is_null($img)) {
                 $handler = $config->get_string(ImageConfig::UPLOAD_COLLISION_HANDLER);
                 if ($handler == ImageConfig::COLLISION_MERGE) {
@@ -517,7 +517,7 @@ class OuroborosAPI extends Extension
         try {
             $upload = new DataUploadEvent($meta['file'], $meta);
             send_event($upload);
-            $image = Image::by_hash($meta['hash']);
+            $image = Post::by_hash($meta['hash']);
             if (!is_null($image)) {
                 $this->sendResponse(200, make_link('post/view/' . $image->id), true);
                 return;
@@ -539,7 +539,7 @@ class OuroborosAPI extends Extension
     protected function postShow(int $id = null)
     {
         if (!is_null($id)) {
-            $post = new _SafeOuroborosImage(Image::by_id($id));
+            $post = new _SafeOuroborosImage(Post::by_id($id));
             $this->sendData('post', [$post]);
         } else {
             $this->sendResponse(424, 'ID is mandatory');
@@ -553,7 +553,7 @@ class OuroborosAPI extends Extension
     protected function postIndex(int $limit, int $page, array $tags)
     {
         $start = ($page - 1) * $limit;
-        $results = Image::find_images(max($start, 0), min($limit, 100), $tags);
+        $results = Post::find_images(max($start, 0), min($limit, 100), $tags);
         $posts = [];
         foreach ($results as $img) {
             if (!is_object($img)) {

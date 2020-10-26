@@ -2,7 +2,7 @@
 
 class CustomViewImageTheme extends ViewImageTheme
 {
-    public function display_page(Image $image, $editor_parts)
+    public function display_page(Post $image, $editor_parts)
     {
         global $page;
         $page->set_heading(html_escape($image->get_tag_list()));
@@ -11,7 +11,7 @@ class CustomViewImageTheme extends ViewImageTheme
         $page->add_block(new Block(null, $this->build_info($image, $editor_parts), "main", 15));
     }
 
-    private function build_information(Image $image): string
+    private function build_information(Post $image): string
     {
         $h_owner = html_escape($image->get_owner()->name);
         $h_ownerlink = "<a href='".make_link("user/$h_owner")."'>$h_owner</a>";
@@ -60,7 +60,7 @@ class CustomViewImageTheme extends ViewImageTheme
         return $html;
     }
 
-    protected function build_navigation(Image $image): string
+    protected function build_navigation(Post $image): string
     {
         //$h_pin = $this->build_pin($image);
         $h_search = "

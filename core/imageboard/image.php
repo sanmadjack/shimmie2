@@ -1,6 +1,22 @@
 <?php declare(strict_types=1);
 /**
+ * @deprecated
+ * @deprecated This is a placeholder class to help prevent breaking third-party code and will be removed at some point.
+ * @deprecated Please migrate to the new Post object as soon as convenient.
  * Class Image
+ *
+ * An object representing an entry in the images table.
+ */
+class Image extends Post
+{
+    public function __construct(?array $row=null)
+    {
+        parent::__construct($row);
+    }
+}
+
+/**
+ * Class Post
  *
  * An object representing an entry in the images table.
  *
@@ -8,7 +24,7 @@
  * image per se, but could be a video, sound file, or any
  * other supported upload type.
  */
-class Image
+class Post
 {
     public const IMAGE_DIR = "images";
     public const THUMBNAIL_DIR = "thumbs";
@@ -78,7 +94,7 @@ class Image
 
     /**
      * One will very rarely construct an image directly, more common
-     * would be to use Image::by_id, Image::by_hash, etc.
+     * would be to use Post::by_id, Post::by_hash, etc.
      */
     public function __construct(?array $row=null)
     {
@@ -105,29 +121,29 @@ class Image
         }
     }
 
-    public static function by_id(int $id): ?Image
+    public static function by_id(int $id): ?Post
     {
         global $database;
         $row = $database->get_row("SELECT * FROM images WHERE images.id=:id", ["id"=>$id]);
-        return ($row ? new Image($row) : null);
+        return ($row ? new Post($row) : null);
     }
 
-    public static function by_hash(string $hash): ?Image
+    public static function by_hash(string $hash): ?Post
     {
         global $database;
         $hash = strtolower($hash);
         $row = $database->get_row("SELECT images.* FROM images WHERE hash=:hash", ["hash"=>$hash]);
-        return ($row ? new Image($row) : null);
+        return ($row ? new Post($row) : null);
     }
 
-    public static function by_id_or_hash(string $id): ?Image
+    public static function by_id_or_hash(string $id): ?Post
     {
-        return (is_numeric($id) && strlen($id) != 32) ? Image::by_id((int)$id) : Image::by_hash($id);
+        return (is_numeric($id) && strlen($id) != 32) ? self::by_id((int)$id) : self::by_hash($id);
     }
 
-    public static function by_random(array $tags=[], int $limit_range=0): ?Image
+    public static function by_random(array $tags=[], int $limit_range=0): ?Post
     {
-        $max = Image::count_images($tags);
+        $max = self::count_images($tags);
         if ($max < 1) {
             return null;
         }		// From Issue #22 - opened by HungryFeline on May 30, 2011.
@@ -135,7 +151,7 @@ class Image
             $max = $limit_range;
         }
         $rand = mt_rand(0, $max-1);
-        $set = Image::find_images($rand, 1, $tags);
+        $set = self::find_images($rand, 1, $tags);
         if (count($set) > 0) {
             return $set[0];
         } else {
@@ -160,7 +176,7 @@ class Image
             }
         }
 
-        $querylet = Image::build_search_querylet($tags, $limit, $start);
+        $querylet = self::build_search_querylet($tags, $limit, $start);
         $result = $database->get_all_iterable($querylet->sql, $querylet->variables);
 
         return $result;
@@ -178,7 +194,7 @@ class Image
 
         $images = [];
         foreach ($result as $row) {
-            $images[] = new Image($row);
+            $images[] = new Post($row);
         }
         return $images;
     }
@@ -190,7 +206,7 @@ class Image
     {
         $result = self::find_images_internal($start, $limit, $tags);
         foreach ($result as $row) {
-            yield new Image($row);
+            yield new Post($row);
         }
     }
 
@@ -248,7 +264,7 @@ class Image
                 if (Extension::is_enabled(RatingsInfo::KEY)) {
                     $tags[] = "rating:*";
                 }
-                $querylet = Image::build_search_querylet($tags);
+                $querylet = self::build_search_querylet($tags);
                 $total = (int)$database->get_one("SELECT COUNT(*) AS cnt FROM ($querylet->sql) AS tbl", $querylet->variables);
                 if (SPEED_HAX && $total > 5000) {
                     // when we have a ton of images, the count
@@ -271,7 +287,7 @@ class Image
     public static function count_pages(array $tags=[]): int
     {
         global $config;
-        return (int)ceil(Image::count_images($tags) / $config->get_int(IndexConfig::IMAGES));
+        return (int)ceil(self::count_images($tags) / $config->get_int(IndexConfig::IMAGES));
     }
 
     private static function terms_to_conditions(array $terms): array
@@ -335,7 +351,7 @@ class Image
      *
      * #param string[] $tags
      */
-    public function get_next(array $tags=[], bool $next=true): ?Image
+    public function get_next(array $tags=[], bool $next=true): ?Post
     {
         global $database;
 
@@ -357,12 +373,12 @@ class Image
 			');
         } else {
             $tags[] = 'id'. $gtlt . $this->id;
-            $querylet = Image::build_search_querylet($tags);
+            $querylet = self::build_search_querylet($tags);
             $querylet->append_sql(' ORDER BY images.id '.$dir.' LIMIT 1');
             $row = $database->get_row($querylet->sql, $querylet->variables);
         }
 
-        return ($row ? new Image($row) : null);
+        return ($row ? new Post($row) : null);
     }
 
     /**
@@ -370,7 +386,7 @@ class Image
      *
      * #param string[] $tags
      */
-    public function get_prev(array $tags=[]): ?Image
+    public function get_prev(array $tags=[]): ?Post
     {
         return $this->get_next($tags, false);
     }

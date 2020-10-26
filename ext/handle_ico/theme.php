@@ -2,7 +2,7 @@
 
 class IcoFileHandlerTheme extends Themelet
 {
-    public function display_image(Page $page, Image $image)
+    public function display_image(Page $page, Post $image)
     {
         $ilink = $image->get_image_link();
         $html = "

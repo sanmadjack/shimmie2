@@ -73,7 +73,7 @@ class ResizeImage extends Extension
     {
         global $config, $page;
 
-        $image_obj = Image::by_id($event->image_id);
+        $image_obj = Post::by_id($event->image_id);
 
         if ($config->get_bool(ResizeConfig::UPLOAD) == true
                 && $this->can_resize_mime($event->mime)) {
@@ -87,7 +87,7 @@ class ResizeImage extends Extension
             }
             $isanigif = 0;
             if ($image_obj->get_mime() == MimeType::GIF) {
-                $image_filename = warehouse_path(Image::IMAGE_DIR, $image_obj->hash);
+                $image_filename = warehouse_path(Post::IMAGE_DIR, $image_obj->hash);
                 if (($fh = @fopen($image_filename, 'rb'))) {
                     //check if gif is animated (via https://www.php.net/manual/en/function.imagecreatefromgif.php#104473)
                     while (!feof($fh) && $isanigif < 2) {
@@ -105,7 +105,7 @@ class ResizeImage extends Extension
 
                 //Need to generate thumbnail again...
                 //This only seems to be an issue if one of the sizes was set to 0.
-                $image_obj = Image::by_id($event->image_id); //Must be a better way to grab the new hash than setting this again..
+                $image_obj = Post::by_id($event->image_id); //Must be a better way to grab the new hash than setting this again..
                 send_event(new ThumbnailGenerationEvent($image_obj->hash, $image_obj->get_mime(), true));
 
                 log_info("resize", ">>{$event->image_id} has been resized to: ".$width."x".$height);
@@ -128,7 +128,7 @@ class ResizeImage extends Extension
                 throw new ImageResizeException("Can not resize Image: No valid Image ID given.");
             }
 
-            $image = Image::by_id($image_id);
+            $image = Post::by_id($image_id);
             if (is_null($image)) {
                 $this->theme->display_error(404, "Image not found", "No image in the database has the ID #$image_id");
             } else {
@@ -228,7 +228,7 @@ class ResizeImage extends Extension
 
     // Private functions
     /* ----------------------------- */
-    private function resize_image(Image $image_obj, int $width, int $height)
+    private function resize_image(Post $image_obj, int $width, int $height)
     {
         global $config;
 
@@ -244,7 +244,7 @@ class ResizeImage extends Extension
         }
 
         $hash = $image_obj->hash;
-        $image_filename  = warehouse_path(Image::IMAGE_DIR, $hash);
+        $image_filename  = warehouse_path(Post::IMAGE_DIR, $hash);
 
         $info = getimagesize($image_filename);
         if (($image_obj->width != $info[0]) || ($image_obj->height != $info[1])) {
@@ -269,7 +269,7 @@ class ResizeImage extends Extension
             Media::RESIZE_TYPE_STRETCH
         ));
 
-        $new_image = new Image();
+        $new_image = new Post();
         $new_image->hash = md5_file($tmp_filename);
         $new_image->filesize = filesize($tmp_filename);
         $new_image->filename = 'resized-'.$image_obj->filename;
@@ -277,7 +277,7 @@ class ResizeImage extends Extension
         $new_image->height = $new_height;
 
         /* Move the new image into the main storage location */
-        $target = warehouse_path(Image::IMAGE_DIR, $new_image->hash);
+        $target = warehouse_path(Post::IMAGE_DIR, $new_image->hash);
         if (!@copy($tmp_filename, $target)) {
             throw new ImageResizeException("Failed to copy new image file from temporary location ({$tmp_filename}) to archive ($target)");
         }
@@ -293,7 +293,7 @@ class ResizeImage extends Extension
     /**
      * #return int[]
      */
-    private function calc_new_size(Image $image_obj, int $width, int $height): array
+    private function calc_new_size(Post $image_obj, int $width, int $height): array
     {
         /* Calculate the new size of the image */
         if ($height > 0 && $width > 0) {

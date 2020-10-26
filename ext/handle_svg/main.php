@@ -13,7 +13,7 @@ class SVGFileHandler extends DataHandlerExtension
         global $page;
         if ($event->page_matches("get_svg")) {
             $id = int_escape($event->get_arg(0));
-            $image = Image::by_id($id);
+            $image = Post::by_id($id);
             $hash = $image->hash;
 
             $page->set_mime(MimeType::SVG);
@@ -21,7 +21,7 @@ class SVGFileHandler extends DataHandlerExtension
 
             $sanitizer = new Sanitizer();
             $sanitizer->removeRemoteReferences(true);
-            $dirtySVG = file_get_contents(warehouse_path(Image::IMAGE_DIR, $hash));
+            $dirtySVG = file_get_contents(warehouse_path(Post::IMAGE_DIR, $hash));
             $cleanSVG = $sanitizer->sanitize($dirtySVG);
             $page->set_data($cleanSVG);
         }
@@ -45,7 +45,7 @@ class SVGFileHandler extends DataHandlerExtension
         $sanitizer->removeRemoteReferences(true);
         $dirtySVG = file_get_contents($event->tmpname);
         $cleanSVG = $sanitizer->sanitize($dirtySVG);
-        file_put_contents(warehouse_path(Image::IMAGE_DIR, $event->hash), $cleanSVG);
+        file_put_contents(warehouse_path(Post::IMAGE_DIR, $event->hash), $cleanSVG);
     }
 
     protected function create_thumb(string $hash, string $type): bool
@@ -60,7 +60,7 @@ class SVGFileHandler extends DataHandlerExtension
             return true;
         } catch (MediaException $e) {
             log_warning("handle_svg", "Could not generate thumbnail. " . $e->getMessage());
-            copy("ext/handle_svg/thumb.jpg", warehouse_path(Image::THUMBNAIL_DIR, $hash));
+            copy("ext/handle_svg/thumb.jpg", warehouse_path(Post::THUMBNAIL_DIR, $hash));
             return false;
         }
     }

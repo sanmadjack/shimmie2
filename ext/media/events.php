@@ -55,11 +55,11 @@ class MediaCheckPropertiesEvent extends Event
     public $file_name;
     public $mime;
 
-    public function __construct(Image $image)
+    public function __construct(Post $image)
     {
         parent::__construct();
         $this->image = $image;
-        $this->file_name = warehouse_path(Image::IMAGE_DIR, $image->hash);
+        $this->file_name = warehouse_path(Post::IMAGE_DIR, $image->hash);
         $this->mime = strtolower($image->get_mime());
     }
 }

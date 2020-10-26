@@ -5,7 +5,7 @@ use function MicroHTML\INPUT;
 
 class ApprovalTheme extends Themelet
 {
-    public function get_image_admin_html(Image $image)
+    public function get_image_admin_html(Post $image)
     {
         if ($image->approved===true) {
             $html = SHM_SIMPLE_FORM(

@@ -34,7 +34,7 @@ class PoolsTheme extends Themelet
         }
     }
 
-    public function get_adder_html(Image $image, array $pools): string
+    public function get_adder_html(Post $image, array $pools): string
     {
         $h = "";
         foreach ($pools as $pool) {

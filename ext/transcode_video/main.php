@@ -108,7 +108,7 @@ class TranscodeVideo extends Extension
             } else {
                 throw new VideoTranscodeException("Can not transcode video: No valid ID given.");
             }
-            $image_obj = Image::by_id($image_id);
+            $image_obj = Post::by_id($image_id);
             if (is_null($image_obj)) {
                 $this->theme->display_error(404, "Image not found", "No image in the database has the ID #$image_id");
             } else {
@@ -199,7 +199,7 @@ class TranscodeVideo extends Extension
         return $output;
     }
 
-    private function transcode_and_replace_video(Image $image, String $target_mime): Image
+    private function transcode_and_replace_video(Post $image, String $target_mime): Post
     {
         if ($image->get_mime()==$target_mime) {
             return $image;
@@ -214,13 +214,13 @@ class TranscodeVideo extends Extension
             throw new VideoTranscodeException("Cannot transcode item $image->id because its video codec is not known");
         }
 
-        $original_file = warehouse_path(Image::IMAGE_DIR, $image->hash);
+        $original_file = warehouse_path(Post::IMAGE_DIR, $image->hash);
 
         $tmp_filename = tempnam(sys_get_temp_dir(), "shimmie_transcode_video");
         try {
             $tmp_filename = $this->transcode_video($original_file, $image->video_codec, $target_mime, $tmp_filename);
 
-            $new_image = new Image();
+            $new_image = new Post();
             $new_image->hash = md5_file($tmp_filename);
             $new_image->filesize = filesize($tmp_filename);
             $new_image->filename = $image->filename;
@@ -228,7 +228,7 @@ class TranscodeVideo extends Extension
             $new_image->height = $image->height;
 
             /* Move the new image into the main storage location */
-            $target = warehouse_path(Image::IMAGE_DIR, $new_image->hash);
+            $target = warehouse_path(Post::IMAGE_DIR, $new_image->hash);
             if (!@copy($tmp_filename, $target)) {
                 throw new VideoTranscodeException("Failed to copy new image file from temporary location ({$tmp_filename}) to archive ($target)");
             }

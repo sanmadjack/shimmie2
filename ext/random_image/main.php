@@ -19,7 +19,7 @@ class RandomImage extends Extension
             } else {
                 throw new SCoreException("Error: too many arguments.");
             }
-            $image = Image::by_random($search_terms);
+            $image = Post::by_random($search_terms);
             if (!$image) {
                 throw new SCoreException(
                     "Couldn't find any images randomly",
@@ -51,7 +51,7 @@ class RandomImage extends Extension
     {
         global $config, $page;
         if ($config->get_bool("show_random_block")) {
-            $image = Image::by_random($event->search_terms);
+            $image = Post::by_random($event->search_terms);
             if (!is_null($image)) {
                 $this->theme->display_random($page, $image);
             }

@@ -29,7 +29,7 @@ class ViewImage extends Extension
                 $query = null;
             }
 
-            $image = Image::by_id($image_id);
+            $image = Post::by_id($image_id);
             if (is_null($image)) {
                 $this->theme->display_error(404, "Image not found", "Image $image_id could not be found");
                 return;
@@ -60,7 +60,7 @@ class ViewImage extends Extension
 
             $image_id = int_escape($event->get_arg(0));
 
-            $image = Image::by_id($image_id);
+            $image = Post::by_id($image_id);
 
             if (!is_null($image)) {
                 send_event(new DisplayingImageEvent($image));
@@ -73,7 +73,7 @@ class ViewImage extends Extension
             }
 
             $image_id = int_escape($_POST['image_id']);
-            $image = Image::by_id($image_id);
+            $image = Post::by_id($image_id);
             if (!$image->is_locked() || $user->can(Permissions::EDIT_IMAGE_LOCK)) {
                 send_event(new ImageInfoSetEvent($image));
 

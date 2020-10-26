@@ -291,7 +291,7 @@ class CommentList extends Extension
 
         $images = [];
         while ($row = $result->fetch()) {
-            $image = Image::by_id((int)$row["image_id"]);
+            $image = Post::by_id((int)$row["image_id"]);
             if (
                 Extension::is_enabled(RatingsInfo::KEY) && !is_null($image) &&
                 !in_array($image->rating, $user_ratings)
@@ -613,7 +613,7 @@ class CommentList extends Extension
         // basic sanity checks
         if (!$user->can(Permissions::CREATE_COMMENT)) {
             throw new CommentPostingException("Anonymous posting has been disabled");
-        } elseif (is_null(Image::by_id($image_id))) {
+        } elseif (is_null(Post::by_id($image_id))) {
             throw new CommentPostingException("The image does not exist");
         } elseif (trim($comment) == "") {
             throw new CommentPostingException("Comments need text...");

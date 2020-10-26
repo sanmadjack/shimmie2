@@ -439,7 +439,7 @@ class TagList extends Extension
         return $html;
     }
 
-    private function add_related_block(Page $page, Image $image): void
+    private function add_related_block(Page $page, Post $image): void
     {
         global $database, $config;
 
@@ -474,7 +474,7 @@ class TagList extends Extension
         }
     }
 
-    private function add_split_tags_block(Page $page, Image $image)
+    private function add_split_tags_block(Page $page, Post $image)
     {
         global $database;
 
@@ -493,7 +493,7 @@ class TagList extends Extension
         }
     }
 
-    private function add_tags_block(Page $page, Image $image)
+    private function add_tags_block(Page $page, Post $image)
     {
         global $database;
 

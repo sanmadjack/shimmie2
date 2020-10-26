@@ -54,7 +54,7 @@ class ReportImageTheme extends Themelet
     /**
      * #param ImageReport[] $reports
      */
-    public function display_image_banner(Image $image, array $reports)
+    public function display_image_banner(Post $image, array $reports)
     {
         global $config, $page;
 

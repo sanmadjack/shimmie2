@@ -6,7 +6,7 @@ class RegenThumb extends Extension
     /** @var RegenThumbTheme */
     protected $theme;
 
-    public function regenerate_thumbnail(Image $image, bool $force = true): bool
+    public function regenerate_thumbnail(Post $image, bool $force = true): bool
     {
         global $cache;
         $event = new ThumbnailGenerationEvent($image->hash, $image->get_mime(), $force);
@@ -20,7 +20,7 @@ class RegenThumb extends Extension
         global $page, $user;
 
         if ($event->page_matches("regen_thumb/one") && $user->can(Permissions::DELETE_IMAGE) && isset($_POST['image_id'])) {
-            $image = Image::by_id(int_escape($_POST['image_id']));
+            $image = Post::by_id(int_escape($_POST['image_id']));
 
             $this->regenerate_thumbnail($image);
 
@@ -28,7 +28,7 @@ class RegenThumb extends Extension
         }
         if ($event->page_matches("regen_thumb/mass") && $user->can(Permissions::DELETE_IMAGE) && isset($_POST['tags'])) {
             $tags = Tag::explode(strtolower($_POST['tags']), false);
-            $images = Image::find_images(0, 10000, $tags);
+            $images = Post::find_images(0, 10000, $tags);
 
             foreach ($images as $image) {
                 $this->regenerate_thumbnail($image);
@@ -118,7 +118,7 @@ class RegenThumb extends Extension
                 $i = 0;
                 foreach ($images as $image) {
                     if (!$force) {
-                        $path = warehouse_path(Image::THUMBNAIL_DIR, $image["hash"], false);
+                        $path = warehouse_path(Post::THUMBNAIL_DIR, $image["hash"], false);
                         if (file_exists($path)) {
                             continue;
                         }
@@ -142,7 +142,7 @@ class RegenThumb extends Extension
 
                     $i = 0;
                     foreach ($images as $image) {
-                        $outname = warehouse_path(Image::THUMBNAIL_DIR, $image["hash"]);
+                        $outname = warehouse_path(Post::THUMBNAIL_DIR, $image["hash"]);
                         if (file_exists($outname)) {
                             unlink($outname);
                             $i++;

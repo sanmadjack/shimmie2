@@ -23,7 +23,7 @@ class LinkImage extends Extension
         $config->set_default_string("ext_link-img_text-link_format", '$title - $id ($ext $size $filesize)');
     }
 
-    private function data(Image $image)
+    private function data(Post $image)
     {
         global $config;
 

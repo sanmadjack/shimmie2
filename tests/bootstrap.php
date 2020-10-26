@@ -69,7 +69,7 @@ abstract class ShimmiePHPUnitTestCase extends TestCase
         // Set up a clean environment for each test
         self::log_out();
         foreach ($database->get_col("SELECT id FROM images") as $image_id) {
-            send_event(new ImageDeletionEvent(Image::by_id((int)$image_id), true));
+            send_event(new ImageDeletionEvent(Post::by_id((int)$image_id), true));
         }
 
         $_tracer->end();  # setUp
@@ -212,7 +212,7 @@ abstract class ShimmiePHPUnitTestCase extends TestCase
 
     protected function assert_search_results($tags, $results)
     {
-        $images = Image::find_images(0, null, $tags);
+        $images = Post::find_images(0, null, $tags);
         $ids = [];
         foreach ($images as $image) {
             $ids[] = $image->id;
@@ -252,7 +252,7 @@ abstract class ShimmiePHPUnitTestCase extends TestCase
 
     protected function delete_image(int $image_id)
     {
-        $img = Image::by_id($image_id);
+        $img = Post::by_id($image_id);
         if ($img) {
             $ide = new ImageDeletionEvent($img, true);
             send_event($ide);

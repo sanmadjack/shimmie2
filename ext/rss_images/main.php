@@ -27,7 +27,7 @@ class RSSImages extends Extension
             if (SPEED_HAX && $page_number > 9) {
                 return;
             }
-            $images = Image::find_images(($page_number-1)*$page_size, $page_size, $search_terms);
+            $images = Post::find_images(($page_number-1)*$page_size, $page_size, $search_terms);
             $this->do_rss($images, $search_terms, $page_number);
         }
     }
@@ -83,7 +83,7 @@ class RSSImages extends Extension
         $page->set_data($xml);
     }
 
-    private function thumb(Image $image): string
+    private function thumb(Post $image): string
     {
         global $cache;
 

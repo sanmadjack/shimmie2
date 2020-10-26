@@ -287,7 +287,7 @@ abstract class DataHandlerExtension extends Extension
 
     protected function move_upload_to_archive(DataUploadEvent $event)
     {
-        $target = warehouse_path(Image::IMAGE_DIR, $event->hash);
+        $target = warehouse_path(Post::IMAGE_DIR, $event->hash);
         if (!@copy($event->tmpname, $target)) {
             $errors = error_get_last();
             throw new UploadException(
@@ -310,7 +310,7 @@ abstract class DataHandlerExtension extends Extension
                 /* hax: This seems like such a dirty way to do this.. */
 
                 /* Check to make sure the image exists. */
-                $existing = Image::by_id($event->replace_id);
+                $existing = Post::by_id($event->replace_id);
 
                 if (is_null($existing)) {
                     throw new UploadException("Image to replace does not exist!");
@@ -321,7 +321,7 @@ abstract class DataHandlerExtension extends Extension
 
                 // even more hax..
                 $event->metadata['tags'] = $existing->get_tag_list();
-                $image = $this->create_image_from_data(warehouse_path(Image::IMAGE_DIR, $event->metadata['hash']), $event->metadata);
+                $image = $this->create_image_from_data(warehouse_path(Post::IMAGE_DIR, $event->metadata['hash']), $event->metadata);
                 if (is_null($image)) {
                     throw new UploadException("Data handler failed to create image object from data");
                 }
@@ -337,7 +337,7 @@ abstract class DataHandlerExtension extends Extension
                 send_event(new ImageReplaceEvent($event->replace_id, $image));
                 $event->image_id = $event->replace_id;
             } else {
-                $image = $this->create_image_from_data(warehouse_path(Image::IMAGE_DIR, $event->hash), $event->metadata);
+                $image = $this->create_image_from_data(warehouse_path(Post::IMAGE_DIR, $event->hash), $event->metadata);
                 if (is_null($image)) {
                     throw new UploadException("Data handler failed to create image object from data");
                 }
@@ -379,7 +379,7 @@ abstract class DataHandlerExtension extends Extension
             if ($event->force) {
                 $result = $this->create_thumb($event->hash, $event->mime);
             } else {
-                $outname = warehouse_path(Image::THUMBNAIL_DIR, $event->hash);
+                $outname = warehouse_path(Post::THUMBNAIL_DIR, $event->hash);
                 if (file_exists($outname)) {
                     return;
                 }
@@ -407,9 +407,9 @@ abstract class DataHandlerExtension extends Extension
         }
     }
 
-    protected function create_image_from_data(string $filename, array $metadata): Image
+    protected function create_image_from_data(string $filename, array $metadata): Post
     {
-        $image = new Image();
+        $image = new Post();
 
         $image->filesize = $metadata['size'];
         $image->hash = $metadata['hash'];

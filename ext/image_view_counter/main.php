@@ -101,7 +101,7 @@ class ImageViewCounter extends Extension
             $result = $database->get_col($sql);
             $images = [];
             foreach ($result as $id) {
-                $images[] = Image::by_id(intval($id));
+                $images[] = Post::by_id(intval($id));
             }
             $this->theme->view_popular($images);
         }

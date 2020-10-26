@@ -31,8 +31,8 @@ class ModelFileHandler extends DataHandlerExtension
             $render3d->executable('povray', '/path/to/povray');
 
 
-            $file = warehouse_path(Image::IMAGE_DIR, $hash);
-            $thumbFile = warehouse_path(Image::THUMBNAIL_DIR, $hash);
+            $file = warehouse_path(Post::IMAGE_DIR, $hash);
+            $thumbFile = warehouse_path(Post::THUMBNAIL_DIR, $hash);
 
             $render3d->filename($file);
 
@@ -44,7 +44,7 @@ class ModelFileHandler extends DataHandlerExtension
             create_scaled_image($renderedImagePath, $thumbFile, $scaled_size, MimeType::PNG);
         } catch (Exception $e) {
             log_warning(ModelFileHandlerInfo::KEY, "Error while rendering STL file: ".$e->getMessage());
-            copy("ext/handle_model/thumb.jpg", warehouse_path(Image::THUMBNAIL_DIR, $hash));
+            copy("ext/handle_model/thumb.jpg", warehouse_path(Post::THUMBNAIL_DIR, $hash));
         }
         return true;
     }

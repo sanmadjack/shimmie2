@@ -434,10 +434,10 @@ class CronUploader extends Extension
         if ($corrupt) {
             // Move to corrupt dir
             $newDir = join_path($this->get_failed_dir(), $output_subdir, $relativeDir);
-            $info = "ERROR: Image was not uploaded. ";
+            $info = "ERROR: Post was not uploaded. ";
         } else {
             $newDir = join_path($this->get_uploaded_dir(), $output_subdir, $relativeDir);
-            $info = "Image successfully uploaded. ";
+            $info = "Post successfully uploaded. ";
         }
         $newDir = str_replace(DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR, DIRECTORY_SEPARATOR, $newDir);
 

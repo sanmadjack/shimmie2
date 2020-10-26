@@ -2,7 +2,7 @@
 
 class ViewImageTheme extends Themelet
 {
-    public function display_meta_headers(Image $image)
+    public function display_meta_headers(Post $image)
     {
         global $page;
 
@@ -17,7 +17,7 @@ class ViewImageTheme extends Themelet
     /*
      * Build a page showing $image and some info about it
      */
-    public function display_page(Image $image, $editor_parts)
+    public function display_page(Post $image, $editor_parts)
     {
         global $page;
         $page->set_title("Image {$image->id}: ".$image->get_tag_list());
@@ -49,7 +49,7 @@ class ViewImageTheme extends Themelet
         return $query;
     }
 
-    protected function build_pin(Image $image)
+    protected function build_pin(Post $image)
     {
         $query = $this->get_query();
         $h_prev = "<a id='prevlink' rel='previous' href='".make_link("post/prev/{$image->id}", $query)."'>Prev</a>";
@@ -58,7 +58,7 @@ class ViewImageTheme extends Themelet
         return "$h_prev | $h_index | $h_next";
     }
 
-    protected function build_navigation(Image $image): string
+    protected function build_navigation(Post $image): string
     {
         $h_pin = $this->build_pin($image);
         $h_search = "
@@ -72,7 +72,7 @@ class ViewImageTheme extends Themelet
         return "$h_pin<br>$h_search";
     }
 
-    protected function build_info(Image $image, $editor_parts)
+    protected function build_info(Post $image, $editor_parts)
     {
         global $user;
 

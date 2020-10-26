@@ -33,7 +33,7 @@ and of course start organising your images :-)
     }
 
     /**
-     * #param Image[] $images
+     * #param Post[] $images
      */
     public function display_page(Page $page, array $images)
     {

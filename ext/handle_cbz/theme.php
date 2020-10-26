@@ -2,7 +2,7 @@
 
 class CBZFileHandlerTheme extends Themelet
 {
-    public function display_image(Page $page, Image $image)
+    public function display_image(Page $page, Post $image)
     {
         $data_href = get_base_href();
         $ilink = $image->get_image_link();

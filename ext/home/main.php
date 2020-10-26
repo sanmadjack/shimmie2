@@ -46,7 +46,7 @@ class Home extends Extension
         }
         $counter_dir = $config->get_string('home_counter', 'default');
 
-        $total = Image::count_images();
+        $total = Post::count_images();
         $strtotal = "$total";
         $num_comma = number_format($total);
 

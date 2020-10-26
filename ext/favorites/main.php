@@ -71,7 +71,7 @@ class Favorites extends Extension
 
     public function onUserPageBuilding(UserPageBuildingEvent $event)
     {
-        $i_favorites_count = Image::count_images(["favorited_by={$event->display_user->name}"]);
+        $i_favorites_count = Post::count_images(["favorited_by={$event->display_user->name}"]);
         $i_days_old = ((time() - strtotime($event->display_user->join_date)) / 86400) + 1;
         $h_favorites_rate = sprintf("%.1f", ($i_favorites_count / $i_days_old));
         $favorites_link = make_link("post/list/favorited_by={$event->display_user->name}/1");
@@ -253,7 +253,7 @@ class Favorites extends Extension
     /**
      * #return string[]
      */
-    private function list_persons_who_have_favorited(Image $image): array
+    private function list_persons_who_have_favorited(Post $image): array
     {
         global $database;
 

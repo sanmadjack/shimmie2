@@ -5,7 +5,7 @@ class CustomViewImageTheme extends ViewImageTheme
     /*
      * Build a page showing $image and some info about it
      */
-    public function display_page(Image $image, $editor_parts)
+    public function display_page(Post $image, $editor_parts)
     {
         global $page;
         $page->set_heading(html_escape($image->get_tag_list()));
@@ -20,7 +20,7 @@ class CustomViewImageTheme extends ViewImageTheme
         }
     }
 
-    protected function build_pin(Image $image)
+    protected function build_pin(Post $image)
     {
         if (isset($_GET['search'])) {
             $query = "search=".url_escape($_GET['search']);
@@ -36,7 +36,7 @@ class CustomViewImageTheme extends ViewImageTheme
     }
 
 
-    protected function build_info(Image $image, $editor_parts)
+    protected function build_info(Post $image, $editor_parts)
     {
         global $user;
 

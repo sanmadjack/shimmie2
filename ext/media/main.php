@@ -67,7 +67,7 @@ class Media extends Extension
         global $page, $user;
 
         if ($event->page_matches("media_rescan/") && $user->can(Permissions::RESCAN_MEDIA) && isset($_POST['image_id'])) {
-            $image = Image::by_id(int_escape($_POST['image_id']));
+            $image = Post::by_id(int_escape($_POST['image_id']));
 
             send_event(new MediaCheckPropertiesEvent($image));
             $image->save_to_db();
@@ -152,7 +152,7 @@ class Media extends Extension
         }
         if ($event->cmd == "media-rescan") {
             $uid = $event->args[0];
-            $image = Image::by_id_or_hash($uid);
+            $image = Post::by_id_or_hash($uid);
             if ($image) {
                 send_event(new MediaCheckPropertiesEvent($image));
                 $image->save_to_db();
@@ -325,10 +325,10 @@ class Media extends Extension
             throw new MediaException("ffmpeg command configured");
         }
 
-        $inname = warehouse_path(Image::IMAGE_DIR, $hash);
+        $inname = warehouse_path(Post::IMAGE_DIR, $hash);
         $tmpname = tempnam(sys_get_temp_dir(), "shimmie_ffmpeg_thumb");
         try {
-            $outname = warehouse_path(Image::THUMBNAIL_DIR, $hash);
+            $outname = warehouse_path(Post::THUMBNAIL_DIR, $hash);
 
             $orig_size = self::video_size($inname);
             $scaled_size = get_thumbnail_size($orig_size[0], $orig_size[1], true);
