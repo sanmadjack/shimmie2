@@ -10,5 +10,5 @@ class TagPalletInfo extends ExtensionInfo
     public $authors = ["Matthew Barbour"=>"matthew@darkholme.net"];
     public $dependencies = [AutoCompleteInfo::KEY];
     public $license = self::LICENSE_GPLV2;
-    public $description = "Provides a persistent pallet that can be used to quickly tag images. Based on advanced tagger by Artanis (Erik Youngren).";
+    public $description = "Provides a persistent pallet that can be used to quickly tag posts. Based on advanced tagger by Artanis (Erik Youngren).";
 }
