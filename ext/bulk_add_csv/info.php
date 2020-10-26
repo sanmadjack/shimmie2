@@ -10,6 +10,7 @@ class BulkAddCSVInfo extends ExtensionInfo
     public array $authors = ["velocity37"=>"velocity37@gmail.com"];
     public string $license = self::LICENSE_GPLV2;
     public string $description = "Bulk add server-side posts with metadata from CSV file";
+    public array $dependencies = [AdminPageInfo::KEY];
     public ?string $documentation =
 "Modification of \"Bulk Add\" by Shish.<br><br>
 Adds posts from a CSV with the five following values: <br>
