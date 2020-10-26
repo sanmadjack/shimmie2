@@ -32,9 +32,12 @@ class PostPermissions extends Extension
         $sb->start_table();
         $sb->add_bool_option(PostPermissionsConfig::USER_DEFAULT_PRIVACY, "Mark posts private by default", true);
         $sb->add_bool_option(PostPermissionsConfig::USER_DEFAULT_VIEW, "View private posts by default", true);
-        if($event->user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
-            $sb->add_bool_option(PostPermissionsConfig::USER_DEFAULT_VIEW_ALL_USERS,
-                "View private posts of all users", true);
+        if ($event->user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
+            $sb->add_bool_option(
+                PostPermissionsConfig::USER_DEFAULT_VIEW_ALL_USERS,
+                "View private posts of all users",
+                true
+            );
         }
         $sb->end_table();
     }
@@ -50,11 +53,11 @@ class PostPermissions extends Extension
                 $image_id = isset($_POST['image_id']) ? $_POST['image_id'] : null;
             }
             if (empty($image_id)) {
-                throw new SCoreException("Can not make image private: No valid Image ID given.");
+                throw new SCoreException("Can not make image private: No valid Post ID given.");
             }
             $image = Image::by_id($image_id);
             if ($image==null) {
-                throw new SCoreException("Image not found.");
+                throw new SCoreException("Post not found.");
             }
             if ($image->owner_id!=$user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
                 throw new SCoreException("Cannot set another user's image to private.");
@@ -72,11 +75,11 @@ class PostPermissions extends Extension
                 $image_id = isset($_POST['image_id']) ? $_POST['image_id'] : null;
             }
             if (empty($image_id)) {
-                throw new SCoreException("Can not make image public: No valid Image ID given.");
+                throw new SCoreException("Can not make image public: No valid Post ID given.");
             }
             $image = Image::by_id($image_id);
             if ($image==null) {
-                throw new SCoreException("Image not found.");
+                throw new SCoreException("Post not found.");
             }
             if ($image->owner_id!=$user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
                 throw new SCoreException("Cannot set another user's image to private.");
@@ -110,7 +113,7 @@ class PostPermissions extends Extension
 
         if (is_null($event->term) && $this->no_private_query($event->context)) {
             if ($show_private) {
-                if($user->can(Permissions::SET_OTHERS_PRIVATE_POSTS) && $show_private_all_users) {
+                if ($user->can(Permissions::SET_OTHERS_PRIVATE_POSTS) && $show_private_all_users) {
                     $event->add_querylet(
                         new Querylet(
                             $database->scoreql_to_sql("private = SCORE_BOOL_N OR private = SCORE_BOOL_Y")
