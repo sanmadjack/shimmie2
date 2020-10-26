@@ -239,7 +239,7 @@ class Deduplicate extends Extension
     {
         if ($event->key===HelpPages::SEARCH) {
             $block = new Block();
-            $block->header = "Similar Images";
+            $block->header = "Similar Posts";
             $block->body = $this->theme->get_help_html();
             $event->add_block($block);
         }
@@ -587,7 +587,7 @@ class Deduplicate extends Extension
         global $database;
 
         if ($image_id_1==$image_id_2) {
-            throw new Exception("Image IDs cannot be the same");
+            throw new Exception("Post IDs cannot be the same");
         }
 
         return $database->execute(
@@ -688,7 +688,7 @@ class Deduplicate extends Extension
         $image = Image::by_id($id);
 
         if ($image == null) {
-            throw new DeduplicateException("Image ID not found: $id");
+            throw new DeduplicateException("Post ID not found: $id");
         }
 
         $set = new ComparisonSet($image);

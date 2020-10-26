@@ -131,7 +131,7 @@ class DeduplicateTheme extends Themelet
             <table class='img-comp'>
                 <tr>
                     <td class='left-image-info image-info'>
-                        <a href='".make_link("post/view/".$left_image->id)."'>{$left_image->id}</a> (<a href='{$left_image->get_image_link()}'>Image</a>)
+                        <a href='".make_link("post/view/".$left_image->id)."'>{$left_image->id}</a> (<a href='{$left_image->get_image_link()}'>Post</a>)
                     </td>
                     <td id='img-comp-container' class=\"img-comp-container\" rowspan='$rows'>
                           <div class=\"img-comp-img\" >
@@ -142,7 +142,7 @@ class DeduplicateTheme extends Themelet
                           </div>
                     </td>
                     <td class='right-image-info image-info'>
-                        <a href='".make_link("post/view/".$right_image->id)."'>{$right_image->id}</a> (<a href='{$right_image->get_image_link()}'>Image</a>)
+                        <a href='".make_link("post/view/".$right_image->id)."'>{$right_image->id}</a> (<a href='{$right_image->get_image_link()}'>Post</a>)
                     </td>
                 </tr>
                 <tr>
@@ -285,10 +285,10 @@ class DeduplicateTheme extends Themelet
 
     public function get_help_html()
     {
-        return '<p>Search for images that have been marked as similar to a particular image.</p>
+        return '<p>Search for posts that have been marked as similar to a particular image.</p>
         <div class="command_example">
         <pre>similar=123</pre>
-        <p>Returns images that have been marked as similar to image 123.</p>
+        <p>Returns posts that have been marked as similar to image 123.</p>
         </div>
         ';
     }

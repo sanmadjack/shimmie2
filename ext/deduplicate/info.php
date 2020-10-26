@@ -8,6 +8,6 @@ class DeduplicateInfo extends ExtensionInfo
     public $name = "Deduplicate";
     public $authors = ["Matthew Barbour"=>"matthew@darkholme.net"];
     public $license = self::LICENSE_WTFPL;
-    public $description = " Provides functions for automatically detecting duplicate images.";
+    public $description = " Provides functions for automatically detecting duplicate posts.";
     public $db_support = [DatabaseDriver::PGSQL];
 }
