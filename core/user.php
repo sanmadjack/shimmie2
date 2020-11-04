@@ -22,6 +22,10 @@ class User
     public ?string $passhash;
     public UserClass $class;
 
+    /** @var array */
+    private $data_row;
+
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     * Initialisation                                               *
     *                                                              *
@@ -46,6 +50,7 @@ class User
         $this->email = $row['email'];
         $this->join_date = $row['joindate'];
         $this->passhash = $row['pass'];
+        $this->data_row = $row;
 
         if (array_key_exists($row["class"], $_shm_user_classes)) {
             $this->class = $_shm_user_classes[$row["class"]];
@@ -248,5 +253,10 @@ class User
         if (!$this->check_auth_token()) {
             die("Invalid auth token");
         }
+    }
+
+    public function get_data_row(): ?array
+    {
+        return $this->data_row;
     }
 }

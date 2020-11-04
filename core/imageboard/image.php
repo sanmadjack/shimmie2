@@ -39,6 +39,10 @@ class Image
     public static array $bool_props = ["locked", "lossless", "video", "audio", "image"];
     public static array $int_props = ["id", "owner_id", "height", "width", "filesize", "length"];
 
+
+    /** @var array */
+    private $data_row;
+
     /**
      * One will very rarely construct an image directly, more common
      * would be to use Image::by_id, Image::by_hash, etc.
@@ -46,6 +50,8 @@ class Image
     public function __construct(?array $row=null)
     {
         if (!is_null($row)) {
+            $this->data_row = $row;
+
             foreach ($row as $name => $value) {
                 if (is_numeric($name)) {
                     continue;
@@ -343,6 +349,11 @@ class Image
     public function get_owner(): User
     {
         return User::by_id($this->owner_id);
+    }
+
+    public function get_data_row(): array
+    {
+        return $this->data_row;
     }
 
     /**

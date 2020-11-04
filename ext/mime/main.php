@@ -1,5 +1,7 @@
 <?php declare(strict_types=1);
 
+use GraphQL\Type\Definition\Type;
+
 require_once "mime_map.php";
 require_once "file_extension.php";
 require_once "mime_type.php";
@@ -11,14 +13,14 @@ class MimeSystem extends Extension
 
     const VERSION = "ext_mime_version";
 
-    public function onParseLinkTemplate(ParseLinkTemplateEvent $event)
+    public function onParseLinkTemplate(ParseLinkTemplateEvent $event): void
     {
         $event->replace('$ext', $event->image->get_ext());
         $event->replace('$mime', $event->image->get_mime());
     }
 
 
-    public function onDatabaseUpgrade(DatabaseUpgradeEvent $event)
+    public function onDatabaseUpgrade(DatabaseUpgradeEvent $event): void
     {
         global $database;
 
@@ -54,7 +56,7 @@ class MimeSystem extends Extension
         }
     }
 
-    public function onHelpPageBuilding(HelpPageBuildingEvent $event)
+    public function onHelpPageBuilding(HelpPageBuildingEvent $event): void
     {
         if ($event->key===HelpPages::SEARCH) {
             $block = new Block();
@@ -64,7 +66,7 @@ class MimeSystem extends Extension
         }
     }
 
-    public function onSearchTermParse(SearchTermParseEvent $event)
+    public function onSearchTermParse(SearchTermParseEvent $event): void
     {
         if (is_null($event->term)) {
             return;
@@ -78,6 +80,14 @@ class MimeSystem extends Extension
         } elseif (preg_match("/^mime[=|:](.+)$/i", $event->term, $matches)) {
             $mime = strtolower($matches[1]);
             $event->add_querylet(new Querylet("images.mime = :mime", ["mime"=>$mime]));
+        }
+    }
+
+    public function onGraphQLCreateType(GraphQLCreateTypeEvent $event): void
+    {
+        if ($event->name=="PostType") {
+            $event->addField("ext", Type::string());
+            $event->addField("mime", Type::string());
         }
     }
 }

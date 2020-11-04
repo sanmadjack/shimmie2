@@ -5,6 +5,7 @@ abstract class PageMode
 {
     const REDIRECT = 'redirect';
     const DATA = 'data';
+    const JSON = 'json';
     const PAGE = 'page';
     const FILE = 'file';
     const MANUAL = 'manual';
@@ -29,6 +30,9 @@ class BasePage
     public function set_mode(string $mode): void
     {
         $this->mode = $mode;
+        if ($mode===PageMode::JSON) {
+            $this->set_mime(MimeType::JSON);
+        }
     }
 
     /**
@@ -258,6 +262,7 @@ class BasePage
                 $this->render();
                 break;
             case PageMode::DATA:
+            case PageMode::JSON:
                 header("Content-Length: " . strlen($this->data));
                 if (!is_null($this->filename)) {
                     header('Content-Disposition: ' . $this->disposition . '; filename=' . $this->filename);

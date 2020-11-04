@@ -23,7 +23,7 @@ class TagPalletTheme extends Themelet
             "<script type='text/javascript'>
 				document.addEventListener('DOMContentLoaded', () => {
 				    $script
-					TagPallet.initialize('".make_link(ApiInternal::IMAGE_API_PATH)."');
+					TagPallet.initialize('".make_link(GQL_PATH)."');
 				});
 			</script>",
             "main",

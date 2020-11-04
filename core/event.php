@@ -48,7 +48,9 @@ class PageRequestEvent extends Event
     public int $arg_count;
     public int $part_count;
 
-    public function __construct(string $path)
+    public $raw_input;
+
+    public function __construct(string $path, $raw_input = null)
     {
         parent::__construct();
         global $config;
@@ -66,6 +68,7 @@ class PageRequestEvent extends Event
 
         $this->args = $args;
         $this->arg_count = count($args);
+        $this->raw_input = $raw_input;
     }
 
     /**

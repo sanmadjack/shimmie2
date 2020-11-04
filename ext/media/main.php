@@ -1,5 +1,7 @@
 <?php declare(strict_types=1);
 
+use GraphQL\Type\Definition\Type;
+
 require_once "config.php";
 require_once "events.php";
 require_once "media_engine.php";
@@ -159,6 +161,17 @@ class Media extends Extension
             } else {
                 print("No post with ID '$uid'\n");
             }
+        }
+    }
+
+    public function onGraphQLCreateType(GraphQLCreateTypeEvent $event): void
+    {
+        if ($event->name=="PostType") {
+            $event->addField("image", Type::boolean());
+            $event->addField("audio", Type::boolean());
+            $event->addField("video", Type::boolean());
+            $event->addField("lossless", Type::boolean());
+            $event->addField("video_codec", Type::string());
         }
     }
 

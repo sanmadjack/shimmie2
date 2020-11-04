@@ -82,7 +82,7 @@ try {
     if (PHP_SAPI === 'cli' || PHP_SAPI == 'phpdbg') {
         send_event(new CommandEvent($argv));
     } else {
-        send_event(new PageRequestEvent(_get_query()));
+        send_event(new PageRequestEvent(_get_query(), file_get_contents('php://input')));
         $page->display();
     }
 
