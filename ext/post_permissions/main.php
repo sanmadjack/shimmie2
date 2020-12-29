@@ -116,21 +116,23 @@ class PostPermissions extends Extension
                 if ($user->can(Permissions::SET_OTHERS_PRIVATE_POSTS) && $show_private_all_users) {
                     $event->add_querylet(
                         new Querylet(
-                            $database->scoreql_to_sql("private = SCORE_BOOL_N OR private = SCORE_BOOL_Y")
+                            "private = :false OR private = :true",
+                            ["false"=>false, "true"=>true]
                         )
                     );
                 } else {
                     $event->add_querylet(
                         new Querylet(
-                            $database->scoreql_to_sql("private = SCORE_BOOL_N OR owner_id = :private_owner_id"),
-                            ["private_owner_id"=>$user->id]
+                            "private = :false OR owner_id = :private_owner_id",
+                            ["private_owner_id"=>$user->id, "false"=>false]
                         )
                     );
                 }
             } else {
                 $event->add_querylet(
                     new Querylet(
-                        $database->scoreql_to_sql("private = SCORE_BOOL_N")
+                        "private = :false",
+                        ["false"=>false]
                     )
                 );
             }
@@ -145,10 +147,12 @@ class PostPermissions extends Extension
             $query = "";
             switch ($matches[1]) {
                 case "no":
-                    $query .= "private = SCORE_BOOL_N";
+                    $query .= "private = :false";
+                    $params["false"] = false;
                     break;
                 case "yes":
-                    $query .= "private = SCORE_BOOL_Y";
+                    $query .= "private = :true";
+                    $params["true"] = true;
 
                     // Admins can view others private images, but they have to specify the user
                     if (!$user->can(Permissions::SET_OTHERS_PRIVATE_POSTS) ||
@@ -159,7 +163,8 @@ class PostPermissions extends Extension
                     }
                     break;
                 case "any":
-                    $query .= "private = SCORE_BOOL_N";
+                    $query .= "private = :false";
+                    $params["false"] = false;
 
                     if (!$user->can(Permissions::SET_OTHERS_PRIVATE_POSTS) ||
                         (!$show_private_all_users &&
@@ -167,12 +172,15 @@ class PostPermissions extends Extension
                         $query .= " OR owner_id = :private_owner_id";
                         $params["private_owner_id"] = $user->id;
                     } else {
-                        $query .= " OR private = SCORE_BOOL_Y";
+                        $query .= " OR private = :true";
+                        $params["true"] = true;
                     }
                     break;
                 case "admin_any":
                     if (!$user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
-                        $query .= "private = SCORE_BOOL_N OR private = SCORE_BOOL_Y";
+                        $query .= "private = :false OR private = :true";
+                        $params["false"] = false;
+                        $params["true"] = true;
                     } else {
                         $query .= "1 = 0";
                     }
@@ -184,7 +192,7 @@ class PostPermissions extends Extension
 
     public function onHelpPageBuilding(HelpPageBuildingEvent $event)
     {
-        if ($event->key===HelpPages::SEARCH) {
+        if ($event->key===HelpPages::SEARCH) {+
             $block = new Block();
             $block->header = "Post Permissions";
             $block->body = $this->theme->get_help_html();
@@ -209,7 +217,7 @@ class PostPermissions extends Extension
 
         $database->execute(
             "UPDATE images SET private = :true WHERE id = :id AND private = :false",
-            ["id"=>$image_id, "true"=>true, "false"=>$database->scoresql_value_prepare(false)]
+            ["id"=>$image_id, "true"=>true, "false"=>false]
         );
     }
 
@@ -219,7 +227,7 @@ class PostPermissions extends Extension
 
         $database->execute(
             "UPDATE images SET private = :false WHERE id = :id AND private = :true",
-            ["id"=>$post_id, "true"=>true, "false"=>$database->scoresql_value_prepare(false)]
+            ["id"=>$post_id, "true"=>true, "false"=>false]
         );
     }
 
@@ -306,7 +314,7 @@ class PostPermissions extends Extension
                         $total++;
                     }
                 }
-                $page->flash("Made $total items public");
+                $page->flash("Changed owner of $total items");
                 break;
         }
     }
@@ -319,9 +327,7 @@ class PostPermissions extends Extension
             // We checked the version of the old private image extension above,
             // so that we don't end up breaking things.
 
-            $database->execute($database->scoreql_to_sql(
-                "ALTER TABLE images ADD COLUMN private SCORE_BOOL NOT NULL DEFAULT SCORE_BOOL_N"
-            ));
+            $database->execute("ALTER TABLE images ADD COLUMN private BOOLEAN NOT NULL DEFAULT FALSE");
 
             $database->execute("CREATE INDEX images_private_idx ON images(private)");
             $this->set_version(PostPermissionsConfig::VERSION, 1);
