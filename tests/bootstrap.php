@@ -116,7 +116,7 @@ abstract class ShimmiePHPUnitTestCase extends TestCase
         return $args;
     }
 
-    protected static function request($page_name, $get_args=null, $post_args=null): Page
+    protected static function request($page_name, $get_args=null, $post_args=null, $post_data=null): Page
     {
         // use a fresh page
         global $page;
@@ -130,16 +130,16 @@ abstract class ShimmiePHPUnitTestCase extends TestCase
         $_GET = $get_args;
         $_POST = $post_args;
         $page = new Page();
-        send_event(new PageRequestEvent($page_name));
+        send_event(new PageRequestEvent($page_name, $post_data));
         if ($page->mode == PageMode::REDIRECT) {
             $page->code = 302;
         }
         return $page;
     }
 
-    protected static function get_page($page_name, $args=null): Page
+    protected static function get_page($page_name, $args=null, $post_data=null): Page
     {
-        return self::request($page_name, $args, null);
+        return self::request($page_name, $args, null, $post_data);
     }
 
     protected static function post_page($page_name, $args=null): Page
