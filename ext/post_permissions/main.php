@@ -192,7 +192,8 @@ class PostPermissions extends Extension
 
     public function onHelpPageBuilding(HelpPageBuildingEvent $event)
     {
-        if ($event->key===HelpPages::SEARCH) {+
+        if ($event->key===HelpPages::SEARCH) {
+            +
             $block = new Block();
             $block->header = "Post Permissions";
             $block->body = $this->theme->get_help_html();
