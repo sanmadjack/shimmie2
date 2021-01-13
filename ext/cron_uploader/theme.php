@@ -18,6 +18,7 @@ class CronUploaderTheme extends Themelet
         array $queue_dirinfo,
         array $uploaded_dirinfo,
         array $failed_dirinfo,
+        array $banned_dirinfo,
         string $cron_cmd,
         string $cron_url,
         ?array $log_entries
@@ -57,6 +58,11 @@ class CronUploaderTheme extends Themelet
 			<td>{$failed_dirinfo['total_files']}</td>
 			<td>{$failed_dirinfo['total_mb']}</td>
 			<td>{$failed_dirinfo['path']}</td>
+			</tr><tr>
+			<td>Banned</td>
+			<td>{$banned_dirinfo['total_files']}</td>
+			<td>{$banned_dirinfo['total_mb']}</td>
+			<td>{$banned_dirinfo['path']}</td>
 			</tr></table>
 
 			<div>Cron Command: <input type='text' size='60' value='$cron_cmd' id='cron_command'>

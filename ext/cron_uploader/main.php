@@ -14,6 +14,7 @@ class CronUploader extends Extension
     const QUEUE_DIR = "queue";
     const UPLOADED_DIR = "uploaded";
     const FAILED_DIR = "failed_to_upload";
+    const BANNED_DIR = "banned";
 
     private static bool $IMPORT_RUNNING = false;
 
@@ -106,6 +107,10 @@ class CronUploader extends Extension
             case "cron_uploader_clear_failed":
                 $event->redirect = true;
                 $this->clear_folder(self::FAILED_DIR);
+                break;
+            case "cron_uploader_clear_banned":
+                $event->redirect = true;
+                $this->clear_folder(self::BANNED_DIR);
                 break;
             case "cron_uploader_restage":
                 $event->redirect = true;
@@ -224,10 +229,12 @@ class CronUploader extends Extension
         $queue_dir = $this->get_queue_dir();
         $uploaded_dir = $this->get_uploaded_dir();
         $failed_dir = $this->get_failed_dir();
+        $banned_dir = $this->get_banned_dir();
 
         $queue_dirinfo = scan_dir($queue_dir);
         $uploaded_dirinfo = scan_dir($uploaded_dir);
         $failed_dirinfo = scan_dir($failed_dir);
+        $banned_dirinfo = scan_dir($banned_dir);
 
 
         $running = false;
@@ -255,6 +262,7 @@ class CronUploader extends Extension
             $queue_dirinfo,
             $uploaded_dirinfo,
             $failed_dirinfo,
+            $banned_dirinfo,
             $this->get_cron_cmd(),
             $this->get_cron_url(),
             $logs
@@ -285,6 +293,14 @@ class CronUploader extends Extension
         return join_path($dir, self::FAILED_DIR);
     }
 
+    public function get_banned_dir()
+    {
+        global $user_config;
+
+        $dir = $user_config->get_string(CronUploaderConfig::DIR);
+        return join_path($dir, self::BANNED_DIR);
+    }
+
     private function prep_root_dir(): string
     {
         global $user_config;
@@ -302,7 +318,9 @@ class CronUploader extends Extension
         if (!is_dir($this->get_failed_dir())) {
             mkdir($this->get_failed_dir(), 0775, true);
         }
-
+        if (!is_dir($this->get_banned_dir())) {
+            mkdir($this->get_banned_dir(), 0775, true);
+        }
         return $dir;
     }
 
@@ -418,7 +436,7 @@ class CronUploader extends Extension
         }
     }
 
-    private function move_uploaded(string $path, string $filename, string $output_subdir, bool $corrupt = false)
+    private function move_uploaded(string $path, string $filename, string $output_subdir, $corrupt = false, $banned = false)
     {
         global $user_config;
 
@@ -439,6 +457,9 @@ class CronUploader extends Extension
             // Move to corrupt dir
             $newDir = join_path($this->get_failed_dir(), $output_subdir, $relativeDir);
             $info = "ERROR: Post was not uploaded. ";
+        } else if($banned) {
+            $newDir = join_path($this->get_banned_dir(), $output_subdir, $relativeDir);
+            $info = "ERROR: Post was not uploaded because it is banned. ";
         } else {
             $newDir = join_path($this->get_uploaded_dir(), $output_subdir, $relativeDir);
             $info = "Post successfully uploaded. ";
