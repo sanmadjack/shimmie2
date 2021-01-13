@@ -33,7 +33,8 @@ class PaginatedListType extends ObjectType implements WrappingType, OutputType
         parent::__construct($config);
     }
 
-    public static function formatData(array $data, int $total, int $offset): array  {
+    public static function formatData(array $data, int $total, int $offset): array
+    {
         $output = [];
         $output[self::DATA] = $data;
         $output[self::COUNT] = sizeof($data);

@@ -156,7 +156,6 @@ class QueryType extends GraphQLShimmieObjectType
             $cache->set($cache_key, $output, 600);
 
             return $output;
-
         }
 
         return $res;

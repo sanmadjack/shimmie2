@@ -35,11 +35,9 @@ class TypeRegistry
     {
         $candidate = new PaginatedListType($wrappedType);
         $name = $candidate->toString();
-        if(!array_key_exists($name, $this->types)) {
+        if (!array_key_exists($name, $this->types)) {
             $this->types[$name] = $candidate;
         }
         return @$this->types[$name]??$candidate;
     }
-
-
 }
