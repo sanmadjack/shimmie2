@@ -2,7 +2,6 @@
 
 class Framer extends Extension
 {
-
     public function onPostListBuilding(PostListBuildingEvent $event)
     {
         global $page, $user;
@@ -17,5 +16,4 @@ class Framer extends Extension
 
         $this->theme->render_selector($page, $sizes);
     }
-
 }
