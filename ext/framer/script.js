@@ -38,20 +38,37 @@ function framerAddFramer(inWidth, inHeight, color) {
         offsetX = offsetX + ((newWidth - frameWidth)/2);
         offsetY = offsetY + ((newHeight - frameHeight)/2);
 
-        console.log("test");
         var frame = $("<div class='frame" + inWidth + "x" + inHeight + "' style='position:absolute; left:" + offsetX + "px; top:" + offsetY + "px; width:" + frameWidth + "px; height:" + frameHeight + "px;outline:solid 1px " + color + ";color:" + color + ";vertical-align: bottom; '><div style='position:absolute; left:0; bottom:0;'>" + inWidth + ":" + inHeight + "</div></div>");
         $(parent).append(frame);
     });
 }
 
 function framerRemoveFrame(width, height) {
-    $("#frame" + inWidth + "x" + inHeight).remove();
+    $(".frame" + width + "x" + height).remove();
+}
+
+let framerActiveSizes = [];
+
+function framerCheckChanged(checked, width, height, color) {
+    if(checked) {
+        framerAddFramer(width,height, color);
+        framerActiveSizes.push(width + "x" + height);
+    } else {
+        framerRemoveFrame(width, height);
+        framerActiveSizes.splice(framerActiveSizes.indexOf(width + "x" + height),1);
+    }
+    window.localStorage.setItem("framer_active_sizes", JSON.stringify(framerActiveSizes))
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    framerAddFramer(8,9, "red");
-    framerAddFramer(16,9, "green");
-    framerAddFramer(8,3, "blue");
-    framerAddFramer(1,2, "yellow");
-    //framerAddFramer(3,2, "orange");
+    let activeSizes = window.localStorage.getItem('framer_active_sizes');
+    if(activeSizes) {
+        activeSizes = JSON.parse(activeSizes);
+        for (let i = 0; i < activeSizes.length; i++) {
+            var check = $("#framerCheckSize" + activeSizes[i]);
+            if (check.length > 0) {
+                check.click();
+            }
+        }
+    }
 });
