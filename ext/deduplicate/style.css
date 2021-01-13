@@ -1,4 +1,4 @@
-table.similar_items img {
+table.similar_posts img {
 	max-height: 128pt;
 	max-width: 128pt;
 
@@ -8,13 +8,13 @@ table.img-comp {
 	width:auto;
 }
 
-.image-info {
+.post-info {
 	word-break: break-word;
 	width:200px;
 	vertical-align: top;
 }
 
-.image-info img {
+.post-info img {
 	width:100px;
 }
 
@@ -34,7 +34,7 @@ table.img-comp {
 	text-align: center;
 }
 
-.left-image-info {
+.left-post-info {
 	text-align: right;
 }
 
@@ -83,11 +83,11 @@ table.img-comp {
 	border-radius: 50%;
 }
 
-img.similar_item {
+img.similar_post {
 	max-height: 100px;
 	max-width: 100px;
 }
 
-td.similar_items img {
+td.similar_posts img {
 	margin:2px;
 }

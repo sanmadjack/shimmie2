@@ -199,6 +199,8 @@ new UserClass("admin", "base", [
 
     Permissions::SET_PRIVATE_POST => true,
     Permissions::SET_OTHERS_PRIVATE_POSTS => true,
+
+    Permissions::DEDUPLICATE => true,
 ]);
 
 @include_once "data/config/user-classes.conf.php";

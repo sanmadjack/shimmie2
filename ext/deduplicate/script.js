@@ -3,23 +3,103 @@
 
 function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
 
-    var ratio = Math.min(maxWidth / srcWidth, maxHeight / srcHeight);
+    let ratio = Math.min(maxWidth / srcWidth, maxHeight / srcHeight);
 
     return { width: srcWidth*ratio, height: srcHeight*ratio };
 }
 
+function deduplicateFormSubmit(action) {
+    let output = false;
+
+    try {
+        let leftPost = document.getElementById("left-post");
+        let rightPost = document.getElementById("right-post");
+
+        let leftWidth = parseInt(leftPost.dataset["width"]);
+        let leftHeight = parseInt(leftPost.dataset["height"]);
+        let leftFileSize = parseInt(leftPost.dataset["filesize"]);
+        let leftLossless = leftPost.dataset["lossless"];
+        leftLossless = (leftLossless=="1"||leftLossless=="true");
+        let leftPixelCount = leftWidth * leftHeight;
+
+        let rightWidth = parseInt(rightPost.dataset["width"]);
+        let rightHeight = parseInt(rightPost.dataset["height"]);
+        let rightFileSize = parseInt(rightPost.dataset["filesize"]);
+        let rightLossless = rightPost.dataset["lossless"];
+        rightLossless = (rightLossless=="1"||rightLossless=="true");
+        let rightPixelCount = rightWidth * rightHeight;
+
+        let prompted = false;
+        switch (action) {
+            case "merge_left":
+            case "delete_right":
+                if(leftPixelCount < rightPixelCount) {
+                    prompted = true;
+                    output = window.confirm("The left post has fewer pixels than the right post. Are you sure you want to delete the right post?")
+                } else {
+                    console.log("Left pixel count " + leftPixelCount + ", right pixel count " + rightPixelCount);
+                }
+                if((!prompted || output) && leftFileSize < rightFileSize) {
+                    prompted = true;
+                    output = window.confirm("The left post has a smaller file size than the right post. Are you sure you want to delete the right post?")
+                } else {
+                    console.log("Left file size " + leftFileSize + ", right pixel count " + rightFileSize);
+                }
+                if((!prompted || output) && rightLossless && !leftLossless) {
+                    prompted = true;
+                    output = window.confirm("The right post is a lossless format, while the left is not. Are you sure you want to delete the right post?")
+                } else {
+                    console.log("Left lossless: " + leftLossless + " and right lossless " + rightLossless);
+                }
+                if(!prompted) {
+                    output = true;
+                }
+                break;
+            case "merge_right":
+            case "delete_left":
+                if(rightPixelCount < leftPixelCount) {
+                    prompted = true;
+                    output = window.confirm("The right post has fewer pixels than the left post. Are you sure you want to delete the left post?")
+                } else {
+                    console.log("Right pixel count " + rightPixelCount + ", left pixel count " + leftPixelCount);
+                }
+                if((!prompted || output) && rightFileSize < leftFileSize) {
+                    prompted = true;
+                    output = window.confirm("The right post has a smaller file size than the left post. Are you sure you want to delete the left post?")
+                } else {
+                    console.log("Right file size " + rightFileSize + ", left pixel count " + leftFileSize);
+                }
+                if((!prompted || output) && leftLossless && !rightLossless) {
+                    prompted = true;
+                    output = window.confirm("The left post is a lossless format, while the right is not. Are you sure you want to delete the left post?")
+                } else {
+                    console.log("Left lossless: " + leftLossless + " and right lossless " + rightLossless);
+                }
+                if(!prompted) {
+                    output = true;
+                }
+                break;
+            case "delete_both":
+                return window.confirm("Are you sure you want to delete both posts?")
+        }
+    } catch(e) {
+        console.log(e);
+        output = false;
+    }
+    return output;
+}
 
 
 function initComparisons() {
-    var leftImage = document.getElementById("left-image");
-    var rightImage = document.getElementById("right-image");
+    var leftPost = document.getElementById("left-post");
+    var rightPost = document.getElementById("right-post");
     var comparisonContainer = document.getElementById("img-comp-container");
 
 
-    var right_image_hidden = document.getElementsByName("right_image");
+    var right_post_hidden = document.getElementsByName("right_post");
 
-    for(i = 0; i < right_image_hidden.length; i++) {
-        right_image_hidden[i].value = rightImage.dataset["id"];
+    for(i = 0; i < right_post_hidden.length; i++) {
+        right_post_hidden[i].value = rightPost.dataset["id"];
     }
 
 
@@ -34,32 +114,32 @@ function initComparisons() {
 
     for (i = 0; i < x.length; i++) {
         /* Once for each "overlay" element:
-        pass the "overlay" element as a parameter when executing the compareImages function: */
-        compareImages(x[i]);
+        pass the "overlay" element as a parameter when executing the comparePosts function: */
+        comparePosts(x[i]);
     }
 
 
     function setViewerSize() {
 
-        var maxHeight = window.innerHeight - 200;
+        var maxHeight = window.innerHeight - 300;
         var maxWidth= window.innerWidth - 700;
 
-        var leftDimensions = calculateAspectRatioFit(leftImage.dataset["width"], leftImage.dataset["height"], maxWidth, maxHeight);
+        var leftDimensions = calculateAspectRatioFit(leftPost.dataset["width"], leftPost.dataset["height"], maxWidth, maxHeight);
 
-        var rightDimensions = calculateAspectRatioFit(rightImage.dataset["width"], rightImage.dataset["height"], maxWidth, maxHeight);
+        var rightDimensions = calculateAspectRatioFit(rightPost.dataset["width"], rightPost.dataset["height"], maxWidth, maxHeight);
 
         w = Math.max(leftDimensions.width, rightDimensions.width);
         h = Math.max(leftDimensions.height, rightDimensions.height);
-        leftImage.style.height = h + "px";
-        leftImage.style.width = w + "px";
-        rightImage.style.height = h + "px";
-        rightImage.style.width = w + "px";
+        leftPost.style.height = h + "px";
+        leftPost.style.width = w + "px";
+        rightPost.style.height = h + "px";
+        rightPost.style.width = w + "px";
         comparisonContainer.style.height = h + "px";
         comparisonContainer.style.width = w + "px";
 
     }
 
-    function compareImages(img) {
+    function comparePosts(img) {
         var slider, img, clicked = 0;
 
         var animating = true;
@@ -160,7 +240,7 @@ function initComparisons() {
             return [x,y];
         }
 
-        var currentPos = [0,0];
+        var currentPos = [w,0];
         function slide(pos) {
             currentPos = pos;
             /* Resize the image: */
