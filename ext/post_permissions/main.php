@@ -177,7 +177,7 @@ class PostPermissions extends Extension
                     }
                     break;
                 case "admin_any":
-                    if (!$user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
+                    if ($user->can(Permissions::SET_OTHERS_PRIVATE_POSTS)) {
                         $query .= "private = :false OR private = :true";
                         $params["false"] = false;
                         $params["true"] = true;
