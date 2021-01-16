@@ -198,13 +198,15 @@ class Deduplicate extends Extension
                     }
 
                     if (Extension::is_enabled(TrashInfo::KEY)) {
-                        $one = $database->get_one("SELECT min(post_1_id) id FROM post_similarities
+                        $one = $database->get_one("SELECT post_1_id id FROM post_similarities
                                     INNER JOIN images i1 on post_similarities.post_1_id = i1.id AND i1.trash = :false
                                     INNER JOIN images i2 on post_similarities.post_2_id = i2.id AND i2.trash = :false
-                                     WHERE saved = :false and similarity <= :similarity"
+                                     WHERE saved = :false and similarity <= :similarity
+                                     ORDER BY post_1_id FETCH FIRST ROW ONLY"
                         , ["false"=>false, "similarity"=>$max_distance]);
                     } else {
-                        $one = $database->get_one("SELECT min(post_1_id) id FROM post_similarities WHERE saved = :false and similarity <= :similarity"
+                        $one = $database->get_one("SELECT post_1_id id FROM post_similarities WHERE saved = :false and similarity <= :similarity
+                                                         ORDER BY post_1_id FETCH FIRST ROW ONLY"
                             , ["false"=>false, "similarity"=>$max_distance]);
                     }
                     if ($one != 0) {
@@ -436,6 +438,7 @@ class Deduplicate extends Extension
             $database->execute("CREATE INDEX posts_sim_post_id_1_idx ON post_similarities(post_1_id)", []);
             $database->execute("CREATE INDEX posts_sim_post_id_2_idx ON post_similarities(post_2_id)", []);
             $database->execute("CREATE INDEX posts_sim_saved_idx ON post_similarities(saved)", []);
+            $database->execute("CREATE INDEX posts_sim_saved_similar_idx ON post_similarities(saved, similarity)", []);
 
             $database->Execute("ALTER TABLE images ADD COLUMN perceptual_hash bytea NULL");
 
