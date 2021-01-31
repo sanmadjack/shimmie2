@@ -161,7 +161,7 @@ class CronUploaderTheme extends Themelet
         return (string)$html;
     }
 
-    public function display_form(array $failed_dirs)
+    public function display_form(array $output_dirs)
     {
         global $page;
 
@@ -170,14 +170,15 @@ class CronUploaderTheme extends Themelet
 
         $html .= make_form(make_link("admin/cron_uploader_restage"));
         $html .= "<table class='form'>";
-        $html .= "<tr><th>Failed dir</th><td><select name='failed_dir' required='required'>";
+        $html .= "<tr><th>Output dir</th><td colspan='2'><select multiple='multiple' name='output_dirs[]' required='required'>";
 
-        foreach ($failed_dirs as $dir) {
+        foreach ($output_dirs as $dir) {
             $html .= "<option value='$dir'>$dir</option>";
         }
 
         $html .= "</select></td></tr>";
-        $html .= "<tr><td colspan='2'><input type='submit' value='Re-stage files to queue' /></td></tr>";
+        $html .= "<tr><td></td><td><button name='action' value='restage' />Re-queue</td>";
+        $html .= "<td><button name='action' value='delete' onclick='return confirm(\"Are you sure you want to delete everything in the selected folder(s)?\");' />Delete</td></tr>";
         $html .= "</table></form>";
 
         $html .= make_form(make_link("admin/cron_uploader_clear_queue"), "POST", false, "", "return confirm('Are you sure you want to delete everything in the queue folder?');")
@@ -189,6 +190,9 @@ class CronUploaderTheme extends Themelet
         $html .= make_form(make_link("admin/cron_uploader_clear_failed"), "POST", false, "", "return confirm('Are you sure you want to delete everything in the failed folder?');")
             ."<table class='form'><tr><td>"
             ."<input type='submit' value='Clear failed folder'></td></tr></table></form>";
+        $html .= make_form(make_link("admin/cron_uploader_clear_banned"), "POST", false, "", "return confirm('Are you sure you want to delete everything in the banned folder?');")
+            ."<table class='form'><tr><td>"
+            ."<input type='submit' value='Clear banned folder'></td></tr></table></form>";
         $html .= "</table>\n";
         $page->add_block(new Block("Cron Upload", $html));
     }

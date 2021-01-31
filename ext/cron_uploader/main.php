@@ -13,8 +13,14 @@ class CronUploader extends Extension
 
     const QUEUE_DIR = "queue";
     const UPLOADED_DIR = "uploaded";
-    const FAILED_DIR = "failed_to_upload";
+    const FAILED_DIR = "failed";
     const BANNED_DIR = "banned";
+
+    const OUTPUT_DIRS = [
+        self::BANNED_DIR,
+        self::FAILED_DIR,
+        self::UPLOADED_DIR,
+    ];
 
     private static bool $IMPORT_RUNNING = false;
 
@@ -78,18 +84,36 @@ class CronUploader extends Extension
 
     public function onAdminBuilding(AdminBuildingEvent $event)
     {
-        $failed_dir = $this->get_failed_dir();
-        $results = get_dir_contents($failed_dir);
+        global $user_config;
 
-        $failed_dirs = [];
-        foreach ($results as $result) {
-            $path = join_path($failed_dir, $result);
-            if (is_dir($path)) {
-                $failed_dirs[] = $result;
+        $outputDirs = [];
+        $baseDir = $user_config->get_string(CronUploaderConfig::DIR);
+        $baseDirFolders = get_dir_contents($baseDir);
+        foreach ($baseDirFolders as $outputDir) {
+            if ($outputDir==self::QUEUE_DIR || $outputDir[0]===".") {
+                continue;
+            }
+
+            $outputPath = join_path($baseDir, $outputDir);
+
+            if (!is_dir($outputPath)) {
+                continue;
+            }
+
+            $results = get_dir_contents($outputPath);
+
+            rsort($results);
+
+            foreach ($results as $result) {
+                $path = join_path($outputPath, $result);
+                if (is_dir($path)) {
+                    $outputDirs[] = join_path(basename($outputDir), $result);
+                }
             }
         }
 
-        $this->theme->display_form($failed_dirs);
+
+        $this->theme->display_form($outputDirs);
     }
 
     public function onAdminAction(AdminActionEvent $event)
@@ -114,8 +138,16 @@ class CronUploader extends Extension
                 break;
             case "cron_uploader_restage":
                 $event->redirect = true;
-                if (array_key_exists("failed_dir", $_POST) && !empty($_POST["failed_dir"])) {
-                    $this->restage_folder($_POST["failed_dir"]);
+                if (array_key_exists("output_dirs", $_POST) && !empty($_POST["output_dirs"])
+                        && array_key_exists("action", $_POST) && !empty($_POST["action"])) {
+                    switch ($_POST["action"]) {
+                        case "restage":
+                            $this->restage_folders($_POST["output_dirs"]);
+                            break;
+                        case "delete":
+                            $this->clear_folders($_POST["output_dirs"]);
+                            break;
+                    }
                 }
                 break;
         }
@@ -140,20 +172,39 @@ class CronUploader extends Extension
         }
     }
 
+    private function restage_folders($folders)
+    {
+        if (is_array($folders)) {
+            foreach ($folders as $folder) {
+                $this->restage_folder($folder);
+            }
+        } else {
+            $this->restage_folder($folders);
+        }
+    }
+
     private function restage_folder(string $folder)
     {
-        global $page;
+        global $page, $user_config;
+
         if (empty($folder)) {
             throw new SCoreException("folder empty");
         }
         $queue_dir = $this->get_queue_dir();
-        $stage_dir = join_path($this->get_failed_dir(), $folder);
+
+
+        $baseDir = $user_config->get_string(CronUploaderConfig::DIR);
+        $stage_dir = join_path($baseDir, $folder);
 
         if (!is_dir($stage_dir)) {
             throw new SCoreException("Could not find $stage_dir");
         }
 
+        $stage_dir = realpath($stage_dir);
+
         $this->prep_root_dir();
+
+        $queue_dir = realpath($queue_dir);
 
         $results = get_files_recursively($stage_dir);
 
@@ -167,6 +218,7 @@ class CronUploader extends Extension
         }
         foreach ($results as $result) {
             $new_path = join_path($queue_dir, substr($result, strlen($stage_dir)));
+
 
             if (file_exists($new_path)) {
                 $page->flash("File already exists in queue folder: " .$result);
@@ -194,6 +246,18 @@ class CronUploader extends Extension
             if (remove_empty_dirs($stage_dir)===false) {
                 $page->flash("Could not remove $folder");
             }
+        }
+    }
+
+
+    private function clear_folders($folders)
+    {
+        if (is_array($folders)) {
+            foreach ($folders as $folder) {
+                $this->clear_folder($folder);
+            }
+        } else {
+            $this->clear_folder($folders);
         }
     }
 
@@ -301,6 +365,16 @@ class CronUploader extends Extension
         return join_path($dir, self::BANNED_DIR);
     }
 
+    public function get_output_dirs(): Generator
+    {
+        global $user_config;
+
+        $rootDir = $user_config->get_string(CronUploaderConfig::DIR);
+        foreach (self::OUTPUT_DIRS as $dir) {
+            yield join_path($rootDir, $dir);
+        }
+    }
+
     private function prep_root_dir(): string
     {
         global $user_config;
@@ -375,6 +449,7 @@ class CronUploader extends Extension
             $merged = 0;
             $added = 0;
             $failed = 0;
+            $banned = 0;
 
             // Upload the file(s)
             foreach ($image_queue as $img) {
@@ -398,6 +473,17 @@ class CronUploader extends Extension
                     } else {
                         $added++;
                     }
+                } catch (UploadBannedException $e) {
+                    try {
+                        if ($database->is_transaction_open()) {
+                            $database->rollback();
+                        }
+                    } catch (Exception $e) {
+                    }
+                    $banned++;
+                    $this->log_message(SCORE_LOG_WARNING, "(" . gettype($e) . ") " . $e->getMessage());
+                    $this->log_message(SCORE_LOG_WARNING, $e->getTraceAsString());
+                    $this->move_uploaded($img[0], $img[1], $output_subdir, false, true);
                 } catch (Exception $e) {
                     try {
                         if ($database->is_transaction_open()) {
@@ -418,14 +504,15 @@ class CronUploader extends Extension
             }
 
             // Throw exception if there's nothing in the queue
-            if ($merged+$failed+$added === 0) {
+            if ($merged+$failed+$added+$banned === 0) {
                 $this->log_message(SCORE_LOG_WARNING, "Your queue is empty so nothing could be uploaded.");
                 return false;
             }
 
             $this->log_message(SCORE_LOG_INFO, "Items added: $added");
             $this->log_message(SCORE_LOG_INFO, "Items merged: $merged");
-            $this->log_message(SCORE_LOG_INFO, "Items failed: $failed");
+            $this->log_message($failed>0 ? SCORE_LOG_ERROR : SCORE_LOG_INFO, "Items failed: $failed");
+            $this->log_message($banned>0 ? SCORE_LOG_WARNING : SCORE_LOG_INFO, "Items banned: $banned");
 
 
             return true;
@@ -457,9 +544,9 @@ class CronUploader extends Extension
             // Move to corrupt dir
             $newDir = join_path($this->get_failed_dir(), $output_subdir, $relativeDir);
             $info = "ERROR: Post was not uploaded. ";
-        } else if($banned) {
+        } elseif ($banned) {
             $newDir = join_path($this->get_banned_dir(), $output_subdir, $relativeDir);
-            $info = "ERROR: Post was not uploaded because it is banned. ";
+            $info = "WARNING: Post was not uploaded because it is banned. ";
         } else {
             $newDir = join_path($this->get_uploaded_dir(), $output_subdir, $relativeDir);
             $info = "Post successfully uploaded. ";

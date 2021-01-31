@@ -70,6 +70,11 @@ class UploadException extends SCoreException
 {
 }
 
+
+class UploadBannedException extends UploadException
+{
+}
+
 /**
  * Main upload class.
  * All files that are uploaded to the site are handled through this class.
