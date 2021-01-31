@@ -69,10 +69,12 @@ function deltree(string $f): void
         }
     } else {
         $fileIterator = new RecursiveDirectoryIterator($f, RecursiveDirectoryIterator::SKIP_DOTS);
-        $files = new RecursiveIteratorIterator($fileIterator,
-            RecursiveIteratorIterator::CHILD_FIRST);
-        foreach($files as $file) {
-            if ($file->isDir()){
+        $files = new RecursiveIteratorIterator(
+            $fileIterator,
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($files as $file) {
+            if ($file->isDir()) {
                 rmdir($file->getRealPath());
             } else {
                 unlink($file->getRealPath());
