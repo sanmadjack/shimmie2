@@ -397,11 +397,13 @@ function remove_empty_dirs(string $dir): bool
     }
 
     $fileIterator = new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS);
-    $files = new RecursiveIteratorIterator($fileIterator,
-        RecursiveIteratorIterator::CHILD_FIRST);
-    foreach($files as $file) {
-        if ($file->isDir()){
-            if(!rmdir($file->getRealPath())) {
+    $files = new RecursiveIteratorIterator(
+        $fileIterator,
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($files as $file) {
+        if ($file->isDir()) {
+            if (!rmdir($file->getRealPath())) {
                 $result = false;
             }
         } else {
@@ -427,10 +429,12 @@ function get_files_recursively(string $dir): array
     $output = [];
 
     $fileIterator = new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS);
-    $files = new RecursiveIteratorIterator($fileIterator,
-        RecursiveIteratorIterator::CHILD_FIRST);
-    foreach($files as $file) {
-        if ($file->isDir()){
+    $files = new RecursiveIteratorIterator(
+        $fileIterator,
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($files as $file) {
+        if ($file->isDir()) {
             continue;
         } else {
             $output[] = $file->getRealPath();
