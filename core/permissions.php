@@ -109,5 +109,4 @@ abstract class Permissions
     public const BULK_DOWNLOAD = "bulk_download";
 
     public const DEDUPLICATE = "deduplicate";
-
 }
