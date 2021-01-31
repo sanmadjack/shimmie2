@@ -1,6 +1,5 @@
 <?php declare(strict_types=1);
 
-
 use Jenssegers\ImageHash\ImageHash;
 use Jenssegers\ImageHash\Hash;
 use Jenssegers\ImageHash\Implementations\DifferenceHash;
@@ -8,7 +7,7 @@ use Jenssegers\ImageHash\Implementations\DifferenceHash;
 class DeduplicateConfig
 {
     const VERSION = "ext_deduplicate_version";
-    const MAXIMUM_DISTANCE = "deduplicate_maximum_distance";
+    const MAXIMUM_VARIANCE = "deduplicate_maximum_variance";
     const SHOW_SAVED = "deduplicate_show_saved";
 }
 
@@ -104,7 +103,7 @@ class Deduplicate extends Extension
     }
 
 
-    public function onInitExt(InitExtEvent $event)
+    public function onInitExt(InitExtEvent $event): void
     {
         global $config, $_shm_user_classes, $_shm_ratings;
 
@@ -112,7 +111,7 @@ class Deduplicate extends Extension
             $this->install();
         }
 
-        $config->set_default_float(DeduplicateConfig::MAXIMUM_DISTANCE, 13);
+        $config->set_default_float(DeduplicateConfig::MAXIMUM_VARIANCE, 13);
         $config->set_default_bool(DeduplicateConfig::SHOW_SAVED, false);
 
 
@@ -124,17 +123,17 @@ class Deduplicate extends Extension
         }
     }
 
-    public function onSetupBuilding(SetupBuildingEvent $event)
+    public function onSetupBuilding(SetupBuildingEvent $event): void
     {
         $sb = $event->panel->create_new_block("Deduplication");
 
         $sb->start_table();
-        $sb->add_int_option(DeduplicateConfig::MAXIMUM_DISTANCE, "Max distance", true);
+        $sb->add_int_option(DeduplicateConfig::MAXIMUM_VARIANCE, "Max variance", true);
         $sb->add_bool_option(DeduplicateConfig::SHOW_SAVED, "Show saved similar posts", true);
         $sb->end_table();
     }
 
-    public function onImageInfoBoxBuilding(ImageInfoBoxBuildingEvent $event)
+    public function onImageInfoBoxBuilding(ImageInfoBoxBuildingEvent $event): void
     {
         global $config, $database;
         if ($config->get_bool(DeduplicateConfig::SHOW_SAVED)) {
@@ -144,7 +143,7 @@ class Deduplicate extends Extension
         }
     }
 
-    public function onPageRequest(PageRequestEvent $event)
+    public function onPageRequest(PageRequestEvent $event): void
     {
         global $page, $user, $database, $config;
 
@@ -152,6 +151,18 @@ class Deduplicate extends Extension
             if (!$user->can(Permissions::DEDUPLICATE)) {
                 $this->theme->display_permission_denied();
             } else {
+                if ($_SERVER['REQUEST_METHOD']=="GET") {
+                    $max_variance = @$_GET["max_variance"];
+                } elseif ($_SERVER['REQUEST_METHOD']=="POST") {
+                    $max_variance = @$_POST["max_variance"];
+                }
+
+                if (empty($max_variance)) {
+                    $max_variance = $config->get_int(DeduplicateConfig::MAXIMUM_VARIANCE);
+                } else {
+                    $max_variance = intval($max_variance);
+                }
+
                 if ($event->arg_count > 1 && $event->args[1] == "action") {
                     $left_post = @$_POST["left_post"];
                     $right_post = @$_POST["right_post"];
@@ -183,7 +194,7 @@ class Deduplicate extends Extension
                     $this->perform_deduplication_action($action, $left_post, $right_post, $left_parent, $right_parent);
 
                     $page->set_mode(PageMode::REDIRECT);
-                    $page->set_redirect(make_link(self::PAGE_NAME));
+                    $page->set_redirect(make_link(self::PAGE_NAME, "max_variance=$max_variance"));
 
                     return;
                 }
@@ -191,33 +202,33 @@ class Deduplicate extends Extension
                 $this->theme->display_page();
 
                 if ($event->count_args() == 0) {
-                    $max_distance = @$_POST["max_distance"];
-
-                    if(empty($max_distance)) {
-                        $max_distance = $config->get_int(DeduplicateConfig::MAXIMUM_DISTANCE);
-                    }
-
                     if (Extension::is_enabled(TrashInfo::KEY)) {
                         $one = $database->get_one("SELECT post_1_id id FROM post_similarities
                                     INNER JOIN images i1 on post_similarities.post_1_id = i1.id AND i1.trash = :false
                                     INNER JOIN images i2 on post_similarities.post_2_id = i2.id AND i2.trash = :false
                                      WHERE saved = :false and similarity <= :similarity
-                                     ORDER BY post_1_id FETCH FIRST ROW ONLY"
-                        , ["false"=>false, "similarity"=>$max_distance]);
+                                     ORDER BY post_1_id FETCH FIRST ROW ONLY", ["false"=>false, "similarity"=>$max_variance]);
                     } else {
                         $one = $database->get_one("SELECT post_1_id id FROM post_similarities WHERE saved = :false and similarity <= :similarity
-                                                         ORDER BY post_1_id FETCH FIRST ROW ONLY"
-                            , ["false"=>false, "similarity"=>$max_distance]);
+                                                         ORDER BY post_1_id FETCH FIRST ROW ONLY", ["false"=>false, "similarity"=>$max_variance]);
                     }
                     if ($one != 0) {
-                        $this->build_deduplication_page(intval($one));
+                        $this->build_deduplication_page($max_variance, intval($one));
                     } else {
                         $page->set_mode(PageMode::REDIRECT);
                         $page->set_redirect(make_link(""));
                         return;
                     }
                 } else {
-                    $this->build_deduplication_page(intval($event->get_arg(0)), intval($event->get_arg(1)));
+                    if ($event->args[1]=="list") {
+                        $this->theme->display_list();
+                    } else {
+                        if ($event->arg_count>2) {
+                            $this->build_deduplication_page($max_variance, intval($event->get_arg(0)), intval($event->get_arg(1)));
+                        } else {
+                            $this->build_deduplication_page($max_variance, intval($event->get_arg(0)));
+                        }
+                    }
                 }
 
                 $page->set_mode(PageMode::PAGE);
@@ -225,7 +236,7 @@ class Deduplicate extends Extension
         }
     }
 
-    public function onSearchTermParse(SearchTermParseEvent $event)
+    public function onSearchTermParse(SearchTermParseEvent $event): void
     {
         global $database;
 
@@ -239,17 +250,32 @@ class Deduplicate extends Extension
         }
     }
 
-    public function onHelpPageBuilding(HelpPageBuildingEvent $event)
+    public function onHelpPageListBuilding(HelpPageListBuildingEvent $event)
     {
+        global $user;
+        if ($user->can(Permissions::DEDUPLICATE)) {
+            $event->add_page("deduplicate", "Deduplicate");
+        }
+    }
+
+    public function onHelpPageBuilding(HelpPageBuildingEvent $event): void
+    {
+        global $user;
         if ($event->key===HelpPages::SEARCH) {
             $block = new Block();
             $block->header = "Similar Posts";
+            $block->body = $this->theme->get_search_help_html();
+            $event->add_block($block);
+        }
+        if ($event->key==="deduplicate"&&$user->can(Permissions::DEDUPLICATE)) {
+            $block = new Block();
+            $block->header = "Deduplicate";
             $block->body = $this->theme->get_help_html();
             $event->add_block($block);
         }
     }
 
-    public function onTagTermParse(TagTermParseEvent $event)
+    public function onTagTermParse(TagTermParseEvent $event): void
     {
         $matches = [];
 
@@ -261,7 +287,7 @@ class Deduplicate extends Extension
         }
     }
 
-    public function onPageSubNavBuilding(PageSubNavBuildingEvent $event)
+    public function onPageSubNavBuilding(PageSubNavBuildingEvent $event): void
     {
         global $user;
         if ($event->parent==="system") {
@@ -272,7 +298,7 @@ class Deduplicate extends Extension
     }
 
 
-    public function onUserBlockBuilding(UserBlockBuildingEvent $event)
+    public function onUserBlockBuilding(UserBlockBuildingEvent $event): void
     {
         global $user;
         if ($user->can(Permissions::DEDUPLICATE)) {
@@ -280,7 +306,7 @@ class Deduplicate extends Extension
         }
     }
 
-    public function onBulkAction(BulkActionEvent $event)
+    public function onBulkAction(BulkActionEvent $event): void
     {
         global $user, $config, $database, $page;
 
@@ -298,12 +324,9 @@ class Deduplicate extends Extension
                 break;
             case "bulk_deduplicate":
                 if ($user->can(Permissions::DEDUPLICATE)) {
-                    ini_set('memory_limit', '100M');
-
-
-                    $max_distance = $config->get_float(DeduplicateConfig::MAXIMUM_DISTANCE);
-                    if ($max_distance < 0) {
-                        $max_distance = 0;
+                    $max_variance = $config->get_float(DeduplicateConfig::MAXIMUM_VARIANCE);
+                    if ($max_variance < 0) {
+                        $max_variance = 0;
                     }
 
                     $convert = $config->get_string(MediaConfig::CONVERT_PATH);
@@ -312,95 +335,108 @@ class Deduplicate extends Extension
                         throw new MediaException("convert command not configured");
                     }
 
-                    $hashes = [];
+                    $result = $this->scan_for_similar_posts($event->items, $max_variance);
 
-                    $post_list = [];
-                    $i = 0;
-                    // Pre-load and filter everything
-                    foreach ($event->items as $post) {
-                        $i++;
-                        if (!MimeType::matches_array($post->get_mime(), self::SUPPORTED_MIME)) {
-                            log_debug("deduplicate", "Type {$post->get_mime()} not supported for post $post->id");
-                            continue;
-                        }
-                        if ($post->video===true) {
-                            log_debug("deduplicate", "Video not supported for post $post->id");
-                            continue;
-                        }
-
-
-                        if ($post->perceptual_hash==null) {
-                            $hash = $this->calculate_hash($post);
-                        } else {
-                            $hash = pg_unescape_bytea(stream_get_contents($post->perceptual_hash));
-                            $hash = Hash::fromHex($hash);
-                        }
-                        if (empty($hash)) {
-                            continue;
-                        }
-
-                        $hashes[$post->id] = $hash;
-                        $post_list[] = $post;
-                    }
-
-                    $similar_posts = 0;
-                    $iterations = 0;
-                    $count = 0;
-                    while (count($post_list) > 0) {
-                        $post_1 = array_pop($post_list);
-                        $post_count = count($post_list);
-                        for ($i = 0; $i < $post_count; $i++) {
-                            $post_2 = $post_list[$i];
-
-                            if ($post_1->id == $post_2->id) {
-                                continue;
-                            }
-
-                            $iterations++;
-
-                            $database->begin_transaction();
-                            try {
-                                $record = $this->get_similarity_record($post_1->id, $post_2->id);
-                                if ($record != null) {
-                                    unset($record);
-                                    // Posts have already been compared
-                                    continue;
-                                };
-
-                                $hash1 = $hashes[$post_1->id];
-                                $hash2 = $hashes[$post_2->id];
-
-                                $distance = $hash1->distance($hash2);
-
-                                if ($distance <= $max_distance) {
-                                    $similar_posts++;
-                                    $this->record_similarity($post_1->id, $post_2->id, $distance);
-                                }
-
-                                unset($hash);
-                                unset($distance);
-                                $database->commit();
-                            } catch (Exception $e) {
-                                try {
-                                    $database->rollback();
-                                } catch (Exception $e) {
-                                }
-
-                                throw new DeduplicateException("An error occurred while comparing posts $post_1->id and $post_2->id: " . $e->getMessage());
-                            }
-                        }
-
-                        unset($hashes[$post_1->id]);
-                        unset($post_1);
-                        $count++;
-                    }
-                    $page->flash("Compared $count items across $iterations combinations, found $similar_posts new similar items");
+                    $page->flash("Compared {$result["count"]} items across {$result["iterations"]} combinations, found {$result["similar_posts"]} new similar items");
                 }
                 break;
         }
     }
 
-    public function onBulkActionBlockBuilding(BulkActionBlockBuildingEvent $event)
+    public function scan_for_similar_posts(iterable $items, $max_variance): array
+    {
+        global $database;
+
+        $hashes = [];
+        $post_list = [];
+        $i = 0;
+        // Pre-load and filter everything
+        foreach ($items as $post) {
+            $i++;
+            if (!MimeType::matches_array($post->get_mime(), self::SUPPORTED_MIME)) {
+                log_debug("deduplicate", "Type {$post->get_mime()} not supported for post $post->id");
+                continue;
+            }
+            if ($post->video===true) {
+                log_debug("deduplicate", "Video not supported for post $post->id");
+                continue;
+            }
+
+
+            if ($post->perceptual_hash==null) {
+                $hash = $this->calculate_hash($post);
+            } else {
+                $hash = pg_unescape_bytea(stream_get_contents($post->perceptual_hash));
+                $hash = Hash::fromHex($hash);
+            }
+            if (empty($hash)) {
+                continue;
+            }
+
+            $hashes[$post->id] = $hash;
+            $post_list[] = $post;
+        }
+
+        $similar_posts = 0;
+        $iterations = 0;
+        $count = 0;
+        while (count($post_list) > 0) {
+            $post_1 = array_pop($post_list);
+            $post_count = count($post_list);
+            for ($i = 0; $i < $post_count; $i++) {
+                $post_2 = $post_list[$i];
+
+                if ($post_1->id == $post_2->id) {
+                    continue;
+                }
+
+                $iterations++;
+
+                $database->begin_transaction();
+                try {
+                    $record = $this->get_similarity_record($post_1->id, $post_2->id);
+                    if ($record != null) {
+                        unset($record);
+                        // Posts have already been compared
+                        continue;
+                    };
+
+                    $hash1 = $hashes[$post_1->id];
+                    $hash2 = $hashes[$post_2->id];
+
+                    $distance = $hash1->distance($hash2);
+
+                    if ($distance <= $max_variance) {
+                        $similar_posts++;
+                        $this->record_similarity($post_1->id, $post_2->id, $distance);
+                    }
+
+                    unset($hash);
+                    unset($distance);
+                    $database->commit();
+                } catch (Exception $e) {
+                    try {
+                        $database->rollback();
+                    } catch (Exception $e) {
+                    }
+
+                    throw new DeduplicateException("An error occurred while comparing posts $post_1->id and $post_2->id: " . $e->getMessage());
+                }
+            }
+
+            unset($hashes[$post_1->id]);
+            unset($post_1);
+            $count++;
+        }
+
+        return [
+            "count"=>$count,
+            "iterations"=>$iterations,
+            "similar_posts"=>$similar_posts
+        ];
+    }
+
+    public function onBulkActionBlockBuilding(BulkActionBlockBuildingEvent $event): void
     {
         global $user;
 
@@ -410,7 +446,7 @@ class Deduplicate extends Extension
         }
     }
 
-    public function save_perceptual_hash(Image $post, $hash)
+    public function save_perceptual_hash(Image $post, Hash $hash): void
     {
         global $database;
 
@@ -419,7 +455,7 @@ class Deduplicate extends Extension
         $database->execute("UPDATE images SET perceptual_hash =:data  WHERE id = :post_id", $values);
     }
 
-    public function install()
+    public function install(): void
     {
         global $database, $config;
 
@@ -446,7 +482,7 @@ class Deduplicate extends Extension
         }
     }
 
-    private function perform_deduplication_action(string $action, int $left_post, int $right_post, ?int $left_parent, ?int $right_parent)
+    private function perform_deduplication_action(string $action, int $left_post, int $right_post, ?int $left_parent, ?int $right_parent): void
     {
         switch ($action) {
             case "merge_left":
@@ -567,11 +603,11 @@ class Deduplicate extends Extension
         }
     }
 
-    private function build_deduplication_page(int $id, ?int $id2 = null)
+    private function build_deduplication_page(int $max_variance, int $id, ?int $id2 = null): void
     {
         global $page, $database;
 
-        $set = $this->get_post_set($id, $id2);
+        $set = $this->get_post_set($max_variance, $id, $id2);
 
 
         $pools = [];
@@ -586,8 +622,31 @@ class Deduplicate extends Extension
                 $default_pool = $data[0]["pool_id"];
             }
         }
-        $this->theme->display_post($set);
-        $this->theme->add_action_block($set, $pools, $default_pool);
+        $this->theme->display_post($set, $max_variance);
+        $this->theme->add_action_block($set, $pools, $default_pool, $max_variance);
+    }
+
+    private function build_deduplication_list_page(int $max_variance): void
+    {
+        global $page, $database;
+//
+//        $set = $this->get_post_set($max_variance, $id, $id2);
+//
+//
+//        $pools = [];
+//        $default_pool = "";
+//        if (Extension::is_enabled(PoolsInfo::KEY)) {
+//            $pools = $database->get_all("SELECT * FROM pools ORDER BY title");
+//            $data = $database->get_all(
+//                "SELECT * FROM pool_images WHERE image_id = :id",
+//                ["id" => $set->post->id]
+//            );
+//            if ($data && count($data) > 0) {
+//                $default_pool = $data[0]["pool_id"];
+//            }
+//        }
+//        $this->theme->display_post($set, $max_variance);
+//        $this->theme->add_action_block($set, $pools, $default_pool, $max_variance);
     }
 
     private function get_similarity_record(int $post_id_1, int $post_id_2): ?array
@@ -602,7 +661,7 @@ class Deduplicate extends Extension
         );
     }
 
-    private function record_similarity(int $post_id_1, int $post_id_2, float $similarity)
+    private function record_similarity(int $post_id_1, int $post_id_2, float $similarity): PDOStatement
     {
         global $database;
 
@@ -620,11 +679,11 @@ class Deduplicate extends Extension
         );
     }
 
-    private function save_similarity(int $post_id_1, int $post_id_2, bool $equalize_tags)
+    private function save_similarity(int $post_id_1, int $post_id_2, bool $equalize_tags): PDOStatement
     {
         global $database;
 
-        if($equalize_tags) {
+        if ($equalize_tags) {
             $post1 = Image::by_id($post_id_1);
             $post2 = Image::by_id($post_id_2);
             $tags1 = $post1->get_tag_array();
@@ -638,8 +697,7 @@ class Deduplicate extends Extension
         }
 
         return $database->execute(
-            "UPDATE post_similarities SET saved = :true WHERE post_1_id = :post_1_id AND post_2_id = :post_2_id"
-            ,
+            "UPDATE post_similarities SET saved = :true WHERE post_1_id = :post_1_id AND post_2_id = :post_2_id",
             [
                 "post_1_id" => min($post_id_1, $post_id_2),
                 "post_2_id" => max($post_id_1, $post_id_2),
@@ -648,7 +706,7 @@ class Deduplicate extends Extension
         );
     }
 
-    private function delete_similarity(int $post_id_1, int $post_id_2)
+    private function delete_similarity(int $post_id_1, int $post_id_2): PDOStatement
     {
         global $database;
 
@@ -661,7 +719,7 @@ class Deduplicate extends Extension
         );
     }
 
-    private function delete_similarities(int $post_id)
+    private function delete_similarities(int $post_id): PDOStatement
     {
         global $database;
 
@@ -673,7 +731,7 @@ class Deduplicate extends Extension
         );
     }
 
-    private function merge_posts(int $source, int $target)
+    private function merge_posts(int $source, int $target): void
     {
         $source_post = Image::by_id($source);
         $target_post = Image::by_id($target);
@@ -688,18 +746,18 @@ class Deduplicate extends Extension
         $this->delete_item($source_post, "Merged into $target_post->hash via de-duplicate");
     }
 
-    private function add_to_pool($left_post, $right_post, $pool)
+    private function add_to_pool($left_post, $right_post, $pool): void
     {
         send_event(new PoolAddPostsEvent($pool, [$left_post, $right_post]));
     }
 
-    private function delete_item_by_id(int $post_id)
+    private function delete_item_by_id(int $post_id): void
     {
         $this->delete_item(Image::by_id($post_id), "Deleted via de-duplicate");
     }
 
 
-    private function delete_item(Image $post, String $reason)
+    private function delete_item(Image $post, String $reason): void
     {
         //send_event(new AddImageHashBanEvent($item->hash, $reason));
         send_event(new ImageDeletionEvent($post));
@@ -726,7 +784,7 @@ class Deduplicate extends Extension
         return $hash;
     }
 
-    private function get_post_set(int $id, ?int $id2): ComparisonSet
+    private function get_post_set(int $max_variance, int $id, ?int $id2): ComparisonSet
     {
         global $database;
 
@@ -735,6 +793,16 @@ class Deduplicate extends Extension
         if ($post == null) {
             throw new DeduplicateException("Post ID not found: $id");
         }
+
+        if ($id2!=null) {
+            // Check if there is a similarity for these two
+            $result = $this->get_similarity_record($id, $id2);
+            if (empty($result)) {
+                $other_post = Image::by_id($id2);
+                $result = $this->scan_for_similar_posts([$post,$other_post], PHP_INT_MAX);
+            }
+        }
+
 
         $set = new ComparisonSet($post);
 
@@ -748,17 +816,27 @@ class Deduplicate extends Extension
             $set->children = Relationships::get_children($post);
         }
 
+        $args = ["post_id" => $id, "false"=>false, "max_variance" => $max_variance];
+
+
         if (Extension::is_enabled(TrashInfo::KEY)) {
-            $sub_data = $database->get_all("SELECT * FROM post_similarities
+            $query = "SELECT * FROM post_similarities
                         INNER JOIN images i1 on post_similarities.post_1_id = i1.id AND i1.trash = :false
                         INNER JOIN images i2 on post_similarities.post_2_id = i2.id AND i2.trash = :false
-                        WHERE (post_1_id = :post_id OR post_2_id = :post_id) AND saved = :false  ORDER BY similarity asc"
-            , ["post_id" => $id, "false" => false]);
+                    ";
         } else {
-            $sub_data = $database->get_all(
-                "SELECT * FROM post_similarities  WHERE (post_1_id = :post_id OR post_2_id = :post_id) AND saved = :false  ORDER BY similarity asc",
-                ["post_id" => $id, "false"=>false]);
+            $query = "SELECT * FROM post_similarities";
         }
+        $query .= "WHERE (:post_id IN (post_1_id, post_2_id))
+                    AND ((saved = :false AND similarity <= :max_variance)";
+
+        if ($id2!=null) {
+            $args["id2"] = $id2;
+            $query .= " OR :id2 IN (post_similarities.post_1_id, post_similarities.post_2_id) ";
+        }
+        $query .= ") ORDER BY similarity asc";
+
+        $sub_data = $database->get_all($query, $args);
 
         foreach ($sub_data as $sub_post) {
             $other_id = $sub_post["post_1_id"];

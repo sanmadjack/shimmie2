@@ -90,74 +90,126 @@ function deduplicateFormSubmit(action) {
 }
 
 
-function initComparisons() {
-    var leftPost = document.getElementById("left-post");
-    var rightPost = document.getElementById("right-post");
-    var comparisonContainer = document.getElementById("img-comp-container");
+
+function ImageComparer() {
+    let comparer = this;
+    const backgroundColorKey = 'deduplicator.backgroundColor';
+    const scalingModeKey = 'deduplicator.scalingMode';
+
+    this.leftPost = document.getElementById("left-post");
+    this.rightPost = document.getElementById("right-post");
+    this.comparisonContainer = document.getElementById("img-comp-container");
+
+    this.imageContainers = document.querySelectorAll(".img-comp-img div");
+
+    this.backgroundColor = window.localStorage.getItem(backgroundColorKey);
+
+    if(!this.backgroundColor) {
+        this.backgroundColor = "black";
+    }
+
+    this.setBackgroundColor = function (color) {
+        this.backgroundColor = color;
+        for(let i = 0; i < this.imageContainers.length; i++) {
+            this.imageContainers[i].style.backgroundColor = color;
+        }
+        window.localStorage.setItem(backgroundColorKey, this.backgroundColor);
+    };
+
+    document.getElementById("imageComparisonBackgroundColorPicker").value = this.backgroundColor;
 
 
-    var right_post_hidden = document.getElementsByName("right_post");
+    this.right_post_hidden = document.getElementsByName("right_post");
 
-    for(i = 0; i < right_post_hidden.length; i++) {
-        right_post_hidden[i].value = rightPost.dataset["id"];
+    for(let i = 0; i < this.right_post_hidden.length; i++) {
+        this.right_post_hidden[i].value = this.rightPost.dataset["id"];
     }
 
 
-    var w, h;
-
-
-    var x, i;
+    this.w = 0;
+    this.h = 0;
+    this.x = document.getElementsByClassName("img-comp-overlay");
+    let  i;
     /* Find all elements with an "overlay" class: */
-    x = document.getElementsByClassName("img-comp-overlay");
 
-    setViewerSize();
 
-    for (i = 0; i < x.length; i++) {
-        /* Once for each "overlay" element:
-        pass the "overlay" element as a parameter when executing the comparePosts function: */
-        comparePosts(x[i]);
+    this.setViewerSize = function() {
+        let bottomMargin = 400;
+        if(document.getElementById("other_similar_items")==null) {
+            bottomMargin = 250;
+        }
+
+        const leftMargin = 700;
+        let backgroundSize = "contain";
+
+        switch (comparer.scalingMode) {
+            case "window":
+                let maxHeight = window.innerHeight - bottomMargin;
+                let maxWidth= window.innerWidth - leftMargin;
+
+                let leftDimensions = calculateAspectRatioFit(comparer.leftPost.dataset["width"], comparer.leftPost.dataset["height"], maxWidth, maxHeight);
+
+                let rightDimensions = calculateAspectRatioFit(comparer.rightPost.dataset["width"], comparer.rightPost.dataset["height"], maxWidth, maxHeight);
+
+                comparer.w = Math.max(leftDimensions.width, rightDimensions.width);
+                comparer.h = Math.max(leftDimensions.height, rightDimensions.height);
+                break;
+            case "imageMatch":
+                comparer.w = Math.max(parseInt(comparer.leftPost.dataset["width"]), parseInt(comparer.rightPost.dataset["width"]));
+                comparer.h = Math.max(parseInt(comparer.leftPost.dataset["height"]), parseInt(comparer.rightPost.dataset["height"]));
+                break;
+            case "none":
+                comparer.w = Math.max(parseInt(comparer.leftPost.dataset["width"]), parseInt(comparer.rightPost.dataset["width"]));
+                comparer.h = Math.max(parseInt(comparer.leftPost.dataset["height"]), parseInt(comparer.rightPost.dataset["height"]));
+                backgroundSize = "auto";
+                break;
+        }
+
+        comparer.leftPost.style.height = comparer.h + "px";
+        comparer.leftPost.style.width = comparer.w + "px";
+        comparer.rightPost.style.height = comparer.h + "px";
+        comparer.rightPost.style.width = comparer.w + "px";
+        comparer.comparisonContainer.style.height = comparer.h + "px";
+        comparer.comparisonContainer.style.width = comparer.w + "px";
+
+        for(let i = 0; i < comparer.imageContainers.length; i++) {
+            comparer.imageContainers[i].style.backgroundSize = backgroundSize;
+        }
     }
 
+    this.scalingMode = window.localStorage.getItem(scalingModeKey);
+    if(!this.scalingMode) {
+        this.scalingMode = "window";
+    }
+    document.getElementById("imageComparisonScalingSelect").value = this.scalingMode;
 
-    function setViewerSize() {
-
-        var maxHeight = window.innerHeight - 300;
-        var maxWidth= window.innerWidth - 700;
-
-        var leftDimensions = calculateAspectRatioFit(leftPost.dataset["width"], leftPost.dataset["height"], maxWidth, maxHeight);
-
-        var rightDimensions = calculateAspectRatioFit(rightPost.dataset["width"], rightPost.dataset["height"], maxWidth, maxHeight);
-
-        w = Math.max(leftDimensions.width, rightDimensions.width);
-        h = Math.max(leftDimensions.height, rightDimensions.height);
-        leftPost.style.height = h + "px";
-        leftPost.style.width = w + "px";
-        rightPost.style.height = h + "px";
-        rightPost.style.width = w + "px";
-        comparisonContainer.style.height = h + "px";
-        comparisonContainer.style.width = w + "px";
-
+    this.setScaling = function(mode) {
+        this.scalingMode = mode;
+        this.setViewerSize();
+        window.localStorage.setItem(scalingModeKey, this.scalingMode);
     }
 
-    function comparePosts(img) {
-        var slider, img, clicked = 0;
+    this.setViewerSize();
 
-        var animating = true;
-        var animationDirection = 1;
-        var animationSpeed = 3;
-        var internvalId = setInterval(frame, 10);
+    this.comparePosts = function(img) {
+        let slider, clicked = 0;
+
+        let animating = true;
+        let animationDirection = 1;
+        let animationSpeed = 3;
+        let internvalId = setInterval(frame, 10);
 
         /* Get the width and height of the img element */
         /* Set the width of the img element to 50%: */
-        img.style.width = (w / 2) + "px";
+        img.style.width = (this.w / 2) + "px";
         /* Create slider: */
         slider = document.createElement("DIV");
         slider.setAttribute("class", "img-comp-slider");
         /* Insert slider */
         img.parentElement.insertBefore(slider, img);
         /* Position the slider in the middle: */
-        slider.style.top = (h / 2) - (slider.offsetHeight / 2) + "px";
-        slider.style.left = (w / 2) - (slider.offsetWidth / 2) + "px";
+        slider.style.top = (this.h / 2) - (slider.offsetHeight / 2) + "px";
+        slider.style.left = (this.w / 2) - (slider.offsetWidth / 2) + "px";
         /* Execute a function when the mouse button is pressed: */
         slider.addEventListener("mousedown", slideReady);
         /* And another function when the mouse button is released: */
@@ -167,7 +219,7 @@ function initComparisons() {
         /* And released (for touch screens: */
         window.addEventListener("touchstop", slideFinish);
 
-        window.addEventListener("resize", setViewerSize);
+        window.addEventListener("resize", this.setViewerSize);
 
         function slideReady(e) {
             if(animating)
@@ -191,15 +243,15 @@ function initComparisons() {
             if (!animating) {
                 clearInterval(internvalId);
             } else {
-                var pos = currentPos.slice(0);
+                let pos = currentPos.slice(0);
                 pos[0] = pos[0] + (animationDirection*animationSpeed);
 
                 if (pos[0] < 0) {
                     pos[0] = 0;
                     animationDirection = 1;
                 }
-                if (pos[0] > w) {
-                    pos[0] = w;
+                if (pos[0] > comparer.w) {
+                    pos[0] = comparer.w;
                     animationDirection = -1;
                 }
 
@@ -211,22 +263,22 @@ function initComparisons() {
             if(animating)
                 return;
 
-            var pos;
+            let pos;
             /* If the slider is no longer clicked, exit this function: */
-            if (clicked == 0) return false;
+            if (clicked === 0) return false;
             /* Get the cursor's x position: */
             pos = getCursorPos(e)
             /* Prevent the slider from being positioned outside the image: */
             if (pos[0] < 0) pos[0] = 0;
             if (pos[1] < 0) pos[1] = 0;
-            if (pos[0] > w) pos[0] = w;
-            if (pos[1] > (h - slider.offsetHeight)) pos[1] = h - slider.offsetHeight;
+            if (pos[0] > comparer.w) pos[0] = comparer.w;
+            if (pos[1] > (comparer.h - slider.offsetHeight)) pos[1] = comparer.h - slider.offsetHeight;
 
             /* Execute a function that will resize the overlay image according to the cursor: */
             slide(pos);
         }
         function getCursorPos(e) {
-            var a, x = 0, y= 0;
+            let a, x = 0, y= 0;
             e = e || window.event;
             /* Get the x positions of the image: */
             a = img.getBoundingClientRect();
@@ -240,7 +292,7 @@ function initComparisons() {
             return [x,y];
         }
 
-        var currentPos = [w,0];
+        let currentPos = [this.w,0];
         function slide(pos) {
             currentPos = pos;
             /* Resize the image: */
@@ -254,5 +306,12 @@ function initComparisons() {
                 slider.style.visibility = "visible";
             }
         }
+    }
+
+
+    for (i = 0; i < this.x.length; i++) {
+        /* Once for each "overlay" element:
+        pass the "overlay" element as a parameter when executing the comparePosts function: */
+        this.comparePosts(this.x[i]);
     }
 }

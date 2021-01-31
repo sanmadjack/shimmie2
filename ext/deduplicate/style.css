@@ -22,7 +22,7 @@ table.img-comp {
 	color:green;
 }
 
-.unique_tag, .unique_tag:hover {
+.unique_tag, .unique_tag:hover, .unique_tag:visited {
 	color:green;
 }
 
@@ -60,6 +60,7 @@ table.img-comp {
 	background-color: black;
 	background-repeat: no-repeat;
 	background-position: center;
+
 }
 
 .img-comp-overlay {
@@ -88,6 +89,10 @@ img.similar_post {
 	max-width: 100px;
 }
 
-td.similar_posts img {
+div.other_similar_item img {
 	margin:2px;
+}
+
+div.other_similar_item {
+    float:left;
 }
