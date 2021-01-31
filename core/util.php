@@ -396,20 +396,19 @@ function remove_empty_dirs(string $dir): bool
         return false;
     }
 
-    $items = array_diff(
-        scandir(
-            $dir
-        ),
-        ['..', '.']
-    );
-    foreach ($items as $item) {
-        $path = join_path($dir, $item);
-        if (is_dir($path)) {
-            $result = $result && remove_empty_dirs($path);
+    $fileIterator = new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS);
+    $files = new RecursiveIteratorIterator($fileIterator,
+        RecursiveIteratorIterator::CHILD_FIRST);
+    foreach($files as $file) {
+        if ($file->isDir()){
+            if(!rmdir($file->getRealPath())) {
+                $result = false;
+            }
         } else {
             $result = false;
         }
     }
+
     if ($result===true) {
         $result = rmdir($dir);
     }
@@ -425,22 +424,16 @@ function get_files_recursively(string $dir): array
         return [];
     }
 
-    $things = array_diff(
-        scandir(
-            $dir
-        ),
-        ['..', '.']
-    );
-
     $output = [];
 
-
-    foreach ($things as $thing) {
-        $path = join_path($dir, $thing);
-        if (is_file($path)) {
-            $output[] = $path;
+    $fileIterator = new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS);
+    $files = new RecursiveIteratorIterator($fileIterator,
+        RecursiveIteratorIterator::CHILD_FIRST);
+    foreach($files as $file) {
+        if ($file->isDir()){
+            continue;
         } else {
-            $output = array_merge($output, get_files_recursively($path));
+            $output[] = $file->getRealPath();
         }
     }
 
