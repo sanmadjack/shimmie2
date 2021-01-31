@@ -68,18 +68,17 @@ function deltree(string $f): void
             rmdir($f);
         }
     } else {
-        if (is_link($f)) {
-            unlink($f);
-        } elseif (is_dir($f)) {
-            foreach (glob($f.'/*') as $sf) {
-                if (is_dir($sf) && !is_link($sf)) {
-                    deltree($sf);
-                } else {
-                    unlink($sf);
-                }
+        $fileIterator = new RecursiveDirectoryIterator($f, RecursiveDirectoryIterator::SKIP_DOTS);
+        $files = new RecursiveIteratorIterator($fileIterator,
+            RecursiveIteratorIterator::CHILD_FIRST);
+        foreach($files as $file) {
+            if ($file->isDir()){
+                rmdir($file->getRealPath());
+            } else {
+                unlink($file->getRealPath());
             }
-            rmdir($f);
         }
+        rmdir($f);
     }
 }
 
