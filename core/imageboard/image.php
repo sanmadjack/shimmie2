@@ -129,8 +129,10 @@ class Image
             }
         }
 
-        $querylet = Image::build_search_querylet($tags, $limit, $start);
-        return $database->get_all_iterable($querylet->sql, $querylet->variables);
+        $queryBuilder = Image::build_search_query($tags, $limit, $start);
+        $query =  $queryBuilder->render();
+
+        return $database->get_all_iterable($query->sql, $query->parameters);
     }
 
     /**
@@ -215,8 +217,12 @@ class Image
                 if (Extension::is_enabled(RatingsInfo::KEY)) {
                     $tags[] = "rating:*";
                 }
-                $querylet = Image::build_search_querylet($tags);
-                $total = (int)$database->get_one("SELECT COUNT(*) AS cnt FROM ($querylet->sql) AS tbl", $querylet->variables);
+                $queryBuilder = Image::build_search_query($tags);
+
+                $query = $queryBuilder->renderForCount();
+
+                $total = (int)$database->get_one($query->sql, $query->parameters);
+
                 if (SPEED_HAX && $total > 5000) {
                     // when we have a ton of images, the count
                     // won't change dramatically very often
@@ -807,15 +813,19 @@ class Image
     /**
      * #param string[] $terms
      */
-    private static function build_search_querylet(
+    private static function build_search_query(
         array $terms,
         ?int $limit=null,
         ?int $offset=null
-    ): Querylet {
+    ): QueryBuilder {
         global $config;
 
         list($tag_conditions, $img_conditions, $order) = self::terms_to_conditions($terms);
         $order = ($order ?: "images.".$config->get_string(IndexConfig::ORDER));
+
+        $query = new QueryBuilder("images");
+        $query->addSelectField("images.*");
+
 
         $positive_tag_count = 0;
         $negative_tag_count = 0;
@@ -841,7 +851,8 @@ class Image
 
         // no tags, do a simple search
         if ($positive_tag_count === 0 && $negative_tag_count === 0) {
-            $query = new Querylet("SELECT images.* FROM images WHERE 1=1");
+            // Do nothing, use base QueryBuilder by itself
+            //$query = new Querylet("SELECT images.* FROM images WHERE 1=1");
         }
 
         // one tag sorted by ID - we can fetch this from the image_tags table,
@@ -863,23 +874,35 @@ class Image
             $tag_array = self::tag_or_wildcard_to_ids($tag_conditions[0]->tag);
             if (count($tag_array) == 0) {
                 if ($positive_tag_count == 1) {
-                    $query = new Querylet("SELECT images.* FROM images WHERE 1=0");
-                } else {
-                    $query = new Querylet("SELECT images.* FROM images WHERE 1=1");
+                    // An impossible query, short it here
+                    $query->addManualCriterion("1=0");
                 }
             } else {
                 $set = implode(', ', $tag_array);
-                $query = new Querylet("
-                    SELECT images.*
-                    FROM images INNER JOIN (
-                        SELECT it.image_id
-                        FROM image_tags it
-                        WHERE it.tag_id $in ($set)
-                        ORDER BY it.image_id DESC
-                        LIMIT :limit OFFSET :offset
-                    ) a on a.image_id = images.id
-                    ORDER BY images.id DESC
-                ", ["limit"=>$limit, "offset"=>$offset]);
+
+                $tagQuery = new QueryBuilder("image_tags", "it");
+                $tagQuery->addSelectField("it.image_id");
+                $tagQuery->addManualCriterion("it.tag_id $in ($set)");
+                $tagQuery->addOrder("it.image_id", false);
+                $tagQuery->limit = $limit;
+                $tagQuery->offset = $offset;
+
+                $tagJoin = $query->addJoin("INNER", $tagQuery, "a");
+                $tagJoin->addManualCriterion("a.image_id = images.id");
+
+                $query->addOrder("images.id", false);
+
+//                $query = new Querylet("
+//                    SELECT images.*
+//                    FROM images INNER JOIN (
+//                        SELECT it.image_id
+//                        FROM image_tags it
+//                        WHERE it.tag_id $in ($set)
+//                        ORDER BY it.image_id DESC
+//                        LIMIT :limit OFFSET :offset
+//                    ) a on a.image_id = images.id
+//                    ORDER BY images.id DESC
+//                ", ["limit"=>$limit, "offset"=>$offset]);
                 // don't offset at the image level because
                 // we already offset at the image_tags level
                 $order = null;
@@ -902,7 +925,9 @@ class Image
                     if ($tag_count== 0) {
                         # one of the positive tags had zero results, therefor there
                         # can be no results; "where 1=0" should shortcut things
-                        return new Querylet("SELECT images.* FROM images WHERE 1=0");
+                        $query->addManualCriterion("1=0");
+                        return $query;
+                        //return new Querylet("SELECT images.* FROM images WHERE 1=0");
                     } elseif ($tag_count==1) {
                         // All wildcard terms that qualify for a single tag can be treated the same as non-wildcards
                         $positive_tag_id_array[] = $tag_ids[0];
@@ -932,37 +957,57 @@ class Image
                         $inner_joins[] = "IN ($positive_tag_id_list)";
                     }
                 }
+                //$first = array_shift($inner_joins);
 
-                $first = array_shift($inner_joins);
-                $sub_query = "SELECT it.image_id FROM image_tags it ";
+                //$sub_query = "SELECT it.image_id FROM image_tags it ";
+
                 $i = 0;
                 foreach ($inner_joins as $inner_join) {
                     $i++;
-                    $sub_query .= " INNER JOIN image_tags it$i ON it$i.image_id = it.image_id AND it$i.tag_id $inner_join ";
+                    $join = $query->addJoin("INNER", "image_tags", "it$i");
+                    $join->addManualCriterion("it$i.image_id = images.id");
+                    $join->addManualCriterion("it$i.tag_id $inner_join");
+                    //$sub_query .= " INNER JOIN image_tags it$i ON it$i.image_id = it.image_id AND it$i.tag_id $inner_join ";
                 }
                 if (!empty($negative_tag_id_array)) {
                     $negative_tag_id_list = join(', ', $negative_tag_id_array);
-                    $sub_query .= " LEFT JOIN image_tags negative ON negative.image_id = it.image_id AND negative.tag_id IN ($negative_tag_id_list) ";
-                }
-                $sub_query .= "WHERE it.tag_id $first ";
-                if (!empty($negative_tag_id_array)) {
-                    $sub_query .= " AND negative.image_id IS NULL";
-                }
-                $sub_query .= " GROUP BY it.image_id ";
+                    $join = $query->addJoin("LEFT", "image_tags", "negative");
+                    $join->addManualCriterion("negative.image_id = images.id");
+                    $join->addManualCriterion("negative.tag_id IN ($negative_tag_id_list)");
 
-                $query = new Querylet("
-                    SELECT images.*
-                    FROM images
-                    INNER JOIN ($sub_query) a on a.image_id = images.id
-                ");
+                    //$sub_query .= " LEFT JOIN image_tags negative ON negative.image_id = it.image_id AND negative.tag_id IN ($negative_tag_id_list) ";
+                }
+                //$query->addManualCriterion("it.tag_id $first ");
+                //$sub_query .= "WHERE it.tag_id $first ";
+                if (!empty($negative_tag_id_array)) {
+                    $query->addManualCriterion("negative.image_id IS NULL");
+                    //$sub_query .= " AND negative.image_id IS NULL";
+                }
+                //$sub_query .= " GROUP BY it.image_id ";
+
+                //$query->crashIt();
+
+//                $query = new Querylet("
+//                    SELECT images.*
+//                    FROM images
+//                    INNER JOIN ($sub_query) a on a.image_id = images.id
+//                ");
             } elseif (!empty($negative_tag_id_array)) {
                 $negative_tag_id_list = join(', ', $negative_tag_id_array);
-                $query = new Querylet("
-                    SELECT images.*
-                    FROM images
-                    LEFT JOIN image_tags negative ON negative.image_id = images.id AND negative.tag_id in ($negative_tag_id_list)
-                    WHERE negative.image_id IS NULL
-                ");
+
+                $query = new QueryBuilder("image");
+                $query->addSelectField("images.*");
+                $join = $query->addJoin("LEFT", "image_tags", "negative");
+                $join->addManualCriterion("negative.image_id = images.id");
+                $join->addManualCriterion("negative.tag_id in ($negative_tag_id_list)");
+                $query->addManualCriterion("negative.image_id IS NULL");
+
+//                $query = new Querylet("
+//                    SELECT images.*
+//                    FROM images
+//                    LEFT JOIN image_tags negative ON negative.image_id = images.id AND negative.tag_id in ($negative_tag_id_list)
+//                    WHERE negative.image_id IS NULL
+//                ");
             } else {
                 throw new SCoreException("No criteria specified");
             }
@@ -986,16 +1031,17 @@ class Image
                 $img_sql .= " (" . $iq->qlet->sql . ")";
                 $img_vars = array_merge($img_vars, $iq->qlet->variables);
             }
-            $query->append_sql(" AND ");
-            $query->append(new Querylet($img_sql, $img_vars));
+            $query->addManualCriterion($img_sql, $img_vars);
+//            $query->append_sql(" AND ");
+//            $query->append(new Querylet($img_sql, $img_vars));
         }
 
         if (!is_null($order)) {
-            $query->append(new Querylet(" ORDER BY ".$order));
+            $query->addOrder($order);
         }
         if (!is_null($limit)) {
-            $query->append(new Querylet(" LIMIT :limit ", ["limit" => $limit]));
-            $query->append(new Querylet(" OFFSET :offset ", ["offset" => $offset]));
+            $query->limit = $limit;
+            $query->offset = $offset;
         }
 
         return $query;
