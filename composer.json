@@ -48,8 +48,9 @@
 
 		"bower-asset/jquery"         : "^1.12",
 		"bower-asset/jquery-timeago" : "^1.5",
-		"bower-asset/js-cookie"      : "^2.1"
-		"webonyx/graphql-php": "dev-master"
+		"bower-asset/js-cookie"      : "^2.1",
+		"webonyx/graphql-php": "dev-master",
+		"jenssegers/imagehash": "dev-master"
     },
 
 	"require-dev" : {
