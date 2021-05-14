@@ -23,6 +23,11 @@ class MediaTheme extends Themelet
         <pre>content:video</pre>
         <p>Returns posts that contain video, including animated GIFs.</p>
         </div>
+        <p>Search for posts based on whether the content is in a lossless format.</p>
+        <div class="command_example">
+        <pre>lossless:true</pre>
+        <p>Returns posts that are in a lossless format.</p>
+        </div>
         <p>These search terms depend on the posts being scanned for media content. Automatic scanning was implemented in mid-2019, so posts uploaded before, or posts uploaded on a system without ffmpeg, will require additional scanning before this will work.</p>
         ';
     }

@@ -242,6 +242,7 @@ class Media extends Extension
     }
 
     const CONTENT_SEARCH_TERM_REGEX = "/^content[=|:]((video)|(audio)|(image)|(unknown))$/i";
+    const LOSSLESS_SEARCH_TERM_REGEX = "/^lossless[=|:]((yes)|(no)|(true)|(false)|(y)|(n))$/i";
 
     public function onSearchTermParse(SearchTermParseEvent $event)
     {
@@ -257,6 +258,15 @@ class Media extends Extension
             } else {
                 $event->add_querylet(new Querylet("$field = :true", ["true"=>true]));
             }
+        }
+        if (preg_match(self::LOSSLESS_SEARCH_TERM_REGEX, $event->term, $matches)) {
+            $field = strtolower($matches[1]);
+            if ($field==="yes"||$field==="y"||$field==="true") {
+                $lossless = true;
+            } else {
+                $lossless = false;
+            }
+            $event->add_querylet(new Querylet("lossless = :lossless", ["lossless"=>$lossless]));
         }
     }
 
