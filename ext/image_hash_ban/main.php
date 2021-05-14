@@ -74,10 +74,20 @@ class ImageBan extends Extension
 
     public function onDataUpload(DataUploadEvent $event)
     {
+        $this->check_for_hash_ban($event->hash);
+    }
+
+    public function onImageReplace(ImageReplaceEvent $event)
+    {
+        $this->check_for_hash_ban($event->image->hash);
+    }
+
+    private function check_for_hash_ban(string $hash): void
+    {
         global $database;
-        $row = $database->get_row("SELECT * FROM image_bans WHERE hash = :hash", ["hash"=>$event->hash]);
+        $row = $database->get_row("SELECT * FROM image_bans WHERE hash = :hash", ["hash"=>$hash]);
         if ($row) {
-            log_info("image_hash_ban", "Attempted to upload a blocked image ({$event->hash} - {$row['reason']})");
+            log_info("image_hash_ban", "Attempted to upload a blocked post ({$hash} - {$row['reason']})");
             throw new UploadBannedException("Post ".html_escape($row["hash"])." has been banned, reason: ".format_text($row["reason"]));
         }
     }
