@@ -165,7 +165,7 @@ class PageRequestEvent extends Event
     {
         global $config;
         $page_size = $config->get_int(IndexConfig::IMAGES);
-        if(key_exists("page_size", $_GET) &&
+        if (key_exists("page_size", $_GET) &&
             is_int($_GET["page_size"])) {
             $page_size = $_GET["page_size"];
             // TODO: Enforce size limits
