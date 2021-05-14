@@ -236,6 +236,22 @@ class TranscodeImage extends Extension
                             $new_image = $this->transcode_and_create_image($image_obj, $_POST['transcode_mime']);
                         }
 
+                        if ($new_image->hash!==$image_obj->hash) {
+                            // If they're the same, the transcode function already flashed a message
+                            $size_difference = $image_obj->filesize - $new_image->filesize;
+                            $message = "Transcoded {$image_obj->id} to {$new_image->get_mime()}, is ";
+                            if ($size_difference<0) {
+                                $message .= human_filesize($size_difference). " larger";
+                            } elseif ($size_difference>0) {
+                                $message .= human_filesize($size_difference). " smaller";
+                            } else {
+                                $message .= " the same size";
+                            }
+                            log_info("Transcode", $message, $message);
+                        }
+
+
+
                         $page->set_mode(PageMode::REDIRECT);
                         $page->set_redirect(make_link("post/view/".$new_image->id));
                     } catch (ImageTranscodeException $e) {
@@ -446,12 +462,16 @@ class TranscodeImage extends Extension
 
         switch ($engine) {
             case "gd":
-                return $this->transcode_image_gd($source_name, $source_mime, $target_mime);
+                $output =  $this->transcode_image_gd($source_name, $source_mime, $target_mime);
+                break;
             case "convert":
-                return $this->transcode_image_convert($source_name, $source_mime, $target_mime);
+                $output =  $this->transcode_image_convert($source_name, $source_mime, $target_mime);
+                break;
             default:
                 throw new ImageTranscodeException("No engine specified");
         }
+        log_info("Transcode", "Transcoded $source_name from $source_mime to $target_mime");
+        return $output;
     }
 
     private function transcode_image_gd(String $source_name, String $source_mime, string $target_mime): string
