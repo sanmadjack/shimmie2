@@ -122,6 +122,8 @@ class VideoFileHandler extends DataHandlerExtension
 
         $enabled_formats = $config->get_array(VideoFileHandlerConfig::ENABLED_FORMATS);
 
+        $enabled_formats =  MimeMap::explode($enabled_formats);
+
         return MimeType::matches_array($mime, $enabled_formats, true);
     }
 
