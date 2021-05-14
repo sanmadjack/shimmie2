@@ -418,7 +418,7 @@ class Image
                     "filesize" => $this->filesize,
                     "hash" => $this->hash,
                     "mime" => strtolower($this->mime),
-                    "ext" => strtolower($this->ext),
+                    "ext" => strtolower($this->ext??""),
                     "source" => $this->source,
                     "id" => $this->id,
                 ]
