@@ -529,7 +529,7 @@ class TranscodeImage extends Extension
 
         switch ($target_mime) {
             case MimeType::PNG:
-                $args .= ' -define png:compression-level=9';
+                $args .= ' -define png:compression-level=9 -define png:exclude-chunks=date,time ';
                 break;
             case MimeType::WEBP_LOSSLESS:
                 $args .= ' -define webp:lossless=true -quality 100 ';
