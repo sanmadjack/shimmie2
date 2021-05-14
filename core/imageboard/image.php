@@ -331,9 +331,9 @@ class Image
         } else {
             $tags[] = 'id'. $gtlt . $this->id;
             $tags[] = 'order:id_'. strtolower($dir);
-            $querylet = Image::build_search_querylet($tags);
-            $querylet->append_sql(' LIMIT 1');
-            $row = $database->get_row($querylet->sql, $querylet->variables);
+            $query_builder = Image::build_search_query($tags);
+            $query_builder->limit = 1;
+            $row = $database->get_row($query_builder->toSql(), $query_builder->compileParameters());
         }
 
         return ($row ? new Image($row) : null);
@@ -800,10 +800,13 @@ class Image
         return load_balance_url($tmpl, $this->hash, $n);
     }
 
-    private static function tag_or_wildcard_to_ids(string $tag): array
+    private static function tag_or_wildcard_to_ids(string $tag, bool $include_empty_tags = true): array
     {
         global $database;
         $sq = "SELECT id FROM tags WHERE LOWER(tag) LIKE LOWER(:tag)";
+        if (!$include_empty_tags) {
+            $sq .= " AND count > 0 ";
+        }
         if ($database->get_driver_name() === DatabaseDriver::SQLITE) {
             $sq .= "ESCAPE '\\'";
         }
@@ -826,6 +829,13 @@ class Image
         $query = new QueryBuilder("images");
         $query->addSelectField("images.*");
 
+        if (!is_null($order)) {
+            $query->addOrder($order);
+        }
+        if (!is_null($limit)) {
+            $query->limit = $limit;
+            $query->offset = $offset;
+        }
 
         $positive_tag_count = 0;
         $negative_tag_count = 0;
@@ -837,24 +847,10 @@ class Image
             }
         }
 
-        /*
-         * Turn a bunch of Querylet objects into a base query
-         *
-         * Must follow the format
-         *
-         *   SELECT images.*
-         *   FROM (...) AS images
-         *   WHERE (...)
-         *
-         * ie, return a set of images.* columns, and end with a WHERE
-         */
-
         // no tags, do a simple search
         if ($positive_tag_count === 0 && $negative_tag_count === 0) {
             // Do nothing, use base QueryBuilder by itself
-            //$query = new Querylet("SELECT images.* FROM images WHERE 1=1");
         }
-
         // one tag sorted by ID - we can fetch this from the image_tags table,
         // and do the offset / limit there, which is 10x faster than fetching
         // all the image_tags and doing the offset / limit on the result.
@@ -871,11 +867,12 @@ class Image
             $in = $positive_tag_count === 1 ? "IN" : "NOT IN";
             // IN (SELECT id FROM tags) is 100x slower than doing a separate
             // query and then a second query for IN(first_query_results)??
-            $tag_array = self::tag_or_wildcard_to_ids($tag_conditions[0]->tag);
+            $tag_array = self::tag_or_wildcard_to_ids($tag_conditions[0]->tag, false);
             if (count($tag_array) == 0) {
                 if ($positive_tag_count == 1) {
                     // An impossible query, short it here
                     $query->addManualCriterion("1=0");
+                    return $query;
                 }
             } else {
                 $set = implode(', ', $tag_array);
@@ -905,9 +902,6 @@ class Image
 //                ", ["limit"=>$limit, "offset"=>$offset]);
                 // don't offset at the image level because
                 // we already offset at the image_tags level
-                $order = null;
-                $limit = null;
-                $offset = null;
             }
         }
 
@@ -918,7 +912,7 @@ class Image
             $negative_tag_id_array = [];
 
             foreach ($tag_conditions as $tq) {
-                $tag_ids = self::tag_or_wildcard_to_ids($tq->tag);
+                $tag_ids = self::tag_or_wildcard_to_ids($tq->tag, false);
                 $tag_count = count($tag_ids);
 
                 if ($tq->positive) {
@@ -944,72 +938,35 @@ class Image
             }
 
             assert($positive_tag_id_array || $positive_wildcard_id_array || $negative_tag_id_array, @$_GET['q']);
-            if (!empty($positive_tag_id_array) || !empty($positive_wildcard_id_array)) {
-                $inner_joins = [];
-                if (!empty($positive_tag_id_array)) {
-                    foreach ($positive_tag_id_array as $tag) {
-                        $inner_joins[] = "= $tag";
-                    }
-                }
-                if (!empty($positive_wildcard_id_array)) {
-                    foreach ($positive_wildcard_id_array as $tags) {
-                        $positive_tag_id_list = join(', ', $tags);
-                        $inner_joins[] = "IN ($positive_tag_id_list)";
-                    }
-                }
-                //$first = array_shift($inner_joins);
 
-                //$sub_query = "SELECT it.image_id FROM image_tags it ";
-
-                $i = 0;
-                foreach ($inner_joins as $inner_join) {
-                    $i++;
+            $i = 0;
+            if (!empty($positive_tag_id_array)) {
+                foreach ($positive_tag_id_array as $tag) {
                     $join = $query->addJoin("INNER", "image_tags", "it$i");
+                    $join->addManualCriterion("it$i.tag_id = $tag");
                     $join->addManualCriterion("it$i.image_id = images.id");
-                    $join->addManualCriterion("it$i.tag_id $inner_join");
-                    //$sub_query .= " INNER JOIN image_tags it$i ON it$i.image_id = it.image_id AND it$i.tag_id $inner_join ";
+                    $i++;
                 }
-                if (!empty($negative_tag_id_array)) {
-                    $negative_tag_id_list = join(', ', $negative_tag_id_array);
-                    $join = $query->addJoin("LEFT", "image_tags", "negative");
-                    $join->addManualCriterion("negative.image_id = images.id");
-                    $join->addManualCriterion("negative.tag_id IN ($negative_tag_id_list)");
+            }
 
-                    //$sub_query .= " LEFT JOIN image_tags negative ON negative.image_id = it.image_id AND negative.tag_id IN ($negative_tag_id_list) ";
+            if (!empty($positive_wildcard_id_array)) {
+                foreach ($positive_wildcard_id_array as $tags) {
+                    $source = new QueryBuilder("image_tags");
+                    $source->addSelectField("image_id");
+                    $source->addInCriterion("tag_id", $tags);
+                    $source->addGroup("image_id");
+
+                    $join = $query->addJoin("INNER", $source, "it$i");
+                    $join->addManualCriterion("it$i.image_id = images.id");
+                    $i++;
                 }
-                //$query->addManualCriterion("it.tag_id $first ");
-                //$sub_query .= "WHERE it.tag_id $first ";
-                if (!empty($negative_tag_id_array)) {
-                    $query->addManualCriterion("negative.image_id IS NULL");
-                    //$sub_query .= " AND negative.image_id IS NULL";
-                }
-                //$sub_query .= " GROUP BY it.image_id ";
+            }
 
-                //$query->crashIt();
-
-//                $query = new Querylet("
-//                    SELECT images.*
-//                    FROM images
-//                    INNER JOIN ($sub_query) a on a.image_id = images.id
-//                ");
-            } elseif (!empty($negative_tag_id_array)) {
-                $negative_tag_id_list = join(', ', $negative_tag_id_array);
-
-                $query = new QueryBuilder("image");
-                $query->addSelectField("images.*");
+            if (!empty($negative_tag_id_array)) {
                 $join = $query->addJoin("LEFT", "image_tags", "negative");
                 $join->addManualCriterion("negative.image_id = images.id");
-                $join->addManualCriterion("negative.tag_id in ($negative_tag_id_list)");
+                $join->addInCriterion("negative.tag_id", $negative_tag_id_array);
                 $query->addManualCriterion("negative.image_id IS NULL");
-
-//                $query = new Querylet("
-//                    SELECT images.*
-//                    FROM images
-//                    LEFT JOIN image_tags negative ON negative.image_id = images.id AND negative.tag_id in ($negative_tag_id_list)
-//                    WHERE negative.image_id IS NULL
-//                ");
-            } else {
-                throw new SCoreException("No criteria specified");
             }
         }
 
@@ -1032,16 +989,6 @@ class Image
                 $img_vars = array_merge($img_vars, $iq->qlet->variables);
             }
             $query->addManualCriterion($img_sql, $img_vars);
-//            $query->append_sql(" AND ");
-//            $query->append(new Querylet($img_sql, $img_vars));
-        }
-
-        if (!is_null($order)) {
-            $query->addOrder($order);
-        }
-        if (!is_null($limit)) {
-            $query->limit = $limit;
-            $query->offset = $offset;
         }
 
         return $query;
