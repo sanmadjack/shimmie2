@@ -114,12 +114,12 @@ class PostPermissions extends Extension
         if (is_null($event->term) && $this->no_private_query($event->context)) {
             if ($show_private) {
                 if ($user->can(Permissions::SET_OTHERS_PRIVATE_POSTS) && $show_private_all_users) {
-                    $event->add_querylet(
-                        new Querylet(
-                            "private = :false OR private = :true",
-                            ["false"=>false, "true"=>true]
-                        )
-                    );
+//                    $event->add_querylet(
+//                        new Querylet(
+//                            "private = :false OR private = :true",
+//                            ["false"=>false, "true"=>true]
+//                        )
+//                    );
                 } else {
                     $event->add_querylet(
                         new Querylet(
