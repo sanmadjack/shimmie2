@@ -113,10 +113,15 @@ function ImageComparer() {
         for(let i = 0; i < this.imageContainers.length; i++) {
             this.imageContainers[i].style.backgroundColor = color;
         }
+        document.querySelectorAll(".other_similar_item img").forEach(function(preview) {
+            preview.style.backgroundColor = color;
+        });
         window.localStorage.setItem(backgroundColorKey, this.backgroundColor);
     };
 
     document.getElementById("imageComparisonBackgroundColorPicker").value = this.backgroundColor;
+
+    this.setBackgroundColor(this.backgroundColor);
 
 
     this.right_post_hidden = document.getElementsByName("right_post");

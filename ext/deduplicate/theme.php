@@ -33,9 +33,10 @@ class DeduplicateTheme extends Themelet
         $page->add_block(new Block("Similar posts", $html));
     }
 
-    private function get_tag_link(string $tag): string
+    private function get_tag_link(string $tag, string $input_name): string
     {
-        return "<a href='".make_link("post/list/".urlencode($tag)."/1")."' class='".(array_search($tag, $this->unique_tags)!==false ? "unique_tag" : "")."'>$tag</a>";
+        return "<label><input name='{$input_name}[]' type='checkbox' value='".html_escape($input_name)."' checked='checked'/>
+                    <a href='".make_link("post/list/".urlencode($tag)."/1")."' class='".(array_search($tag, $this->unique_tags)!==false ? "unique_tag" : "")."'>$tag</a></label><br/>";
     }
 
     private function determine_comparison_class(int $a, int $b): string
@@ -129,7 +130,14 @@ class DeduplicateTheme extends Themelet
             }
             $extra_rows .= "</td></tr>";
         }
-
+        $left_tag_list = "";
+        $right_tag_list = "";
+        foreach ($left_post->get_tag_array() as $tag) {
+            $left_tag_list .= $this->get_tag_link($tag, "left_tags");
+        }
+        foreach ($right_post->get_tag_array() as $tag) {
+            $right_tag_list .= $this->get_tag_link($tag, "right_tags");
+        }
 
         $html .= make_form(make_link(Deduplicate::PAGE_NAME . "/action"), "POST", false, "deduplicateForm", "") ."
                 <input type='hidden' name='left_post' value='" . $set->post->id . "' />
@@ -173,9 +181,9 @@ class DeduplicateTheme extends Themelet
                     ."'>{$right_post->get_mime()}".($right_post->lossless?" (lossless)":"")."</td>
                 </tr>
                 <tr><td class='left-post-info post-info'>".
-                    implode(" ", array_map([$this,"get_tag_link"], $left_post->get_tag_array()))
+                    $left_tag_list
                 ."</td><td class='right-post-info post-info'>".
-                    implode(" ", array_map([$this,"get_tag_link"], $right_post->get_tag_array()))
+                    $right_tag_list
                 ."</td></tr>
                 $extra_rows
                 <tr>
@@ -209,22 +217,21 @@ class DeduplicateTheme extends Themelet
 
 
         if (count($set->similar_posts)>1) {
-            $html = "<div id='other_similar_items' class='other_similar_item'><a href='" . (make_link("post/view/" . $left_post->id)) . "'>
+            $html = make_form(make_link(Deduplicate::PAGE_NAME . "/action")) . "<div id='other_similar_items' class='other_similar_item'><a href='" . (make_link("post/view/" . $left_post->id)) . "'>
                 <img class='similar_post' src='" . $left_post->get_thumb_link() . "' /></a><br/>Base post</div>
-                            <div class='other_similar_item'>".make_form(make_link(Deduplicate::PAGE_NAME . "/action")) . "<br/>
+                            <div class='other_similar_item'><br/>
                 <input type='hidden' name='left_post' value='" . $set->post->id . "' />
-                <input type='hidden' name='other_posts' value='" . html_escape(json_encode($set->other_ids())). "' />
                 <input type='hidden' name='max_variance' value='$max_variance' />
-               <button name=\"action\" value=\"dismiss_all\" type=\"submit\">Dismiss All Similarities</button><br/><br/>
-               <button name=\"action\" value=\"save_all\" type=\"submit\">Save All Similarities</button><br/><br/>
-               </form></div>
+               <button name=\"action\" value=\"dismiss_checked\" type=\"submit\">Dismiss Checked Similarities</button><br/><br/>
+               <button name=\"action\" value=\"save_checked\" type=\"submit\">Save Checked Similarities</button><br/><br/>
+               </div>
 ";
 
             foreach ($set->similar_posts as $other_post) {
                 $html .= "<div class='other_similar_item'>
                             <a href='" . make_link("deduplicate/" .$left_post->id."/". $other_post->post->id, $query_args) . "'>
                                 <img class='similar_post' src='" . $other_post->post->get_thumb_link() . "' />
-                            </a><br/>{$other_post->similarity} ";
+                            </a><input type='checkbox' name='other_posts[]' value='{$other_post->post->id}' checked='checked' /><br/>{$other_post->similarity} ";
 
                 $html .= "<a href='".make_link(Deduplicate::PAGE_NAME."/".$other_post->post->id, $query_args)."'>Load</a>";
                 if ($other_post->post->id!==$right_post->id) {
@@ -234,7 +241,7 @@ class DeduplicateTheme extends Themelet
 
                 $html .= "</div>";
             }
-
+            $html .= "</form>";
             $page->add_block(new Block("Other Similar Posts", $html));
         }
     }

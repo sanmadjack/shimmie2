@@ -9,6 +9,7 @@ class DeduplicateConfig
     const VERSION = "ext_deduplicate_version";
     const MAXIMUM_VARIANCE = "deduplicate_maximum_variance";
     const SHOW_SAVED = "deduplicate_show_saved";
+    const BAN_DELETED_POSTS = "deduplicate_ban_deleted_posts";
 }
 
 /*
@@ -16,6 +17,10 @@ class DeduplicateConfig
 */
 
 class DeduplicateException extends SCoreException
+{
+}
+
+class PostNotHashableException extends SCoreException
 {
 }
 
@@ -95,6 +100,10 @@ class Deduplicate extends Extension
 
     private $hasher;
 
+    private static $SCAN_RUNNING = false;
+
+    private static $HASH_CACHE = [];
+
     public function __construct()
     {
         parent::__construct();
@@ -107,12 +116,13 @@ class Deduplicate extends Extension
     {
         global $config, $_shm_user_classes, $_shm_ratings;
 
-        if ($config->get_int(DeduplicateConfig::VERSION) < 1) {
+        if ($config->get_int(DeduplicateConfig::VERSION) < 2) {
             $this->install();
         }
 
         $config->set_default_float(DeduplicateConfig::MAXIMUM_VARIANCE, 13);
         $config->set_default_bool(DeduplicateConfig::SHOW_SAVED, false);
+        $config->set_default_bool(DeduplicateConfig::BAN_DELETED_POSTS, false);
 
 
         foreach (array_keys($_shm_user_classes) as $key) {
@@ -130,6 +140,7 @@ class Deduplicate extends Extension
         $sb->start_table();
         $sb->add_int_option(DeduplicateConfig::MAXIMUM_VARIANCE, "Max variance", true);
         $sb->add_bool_option(DeduplicateConfig::SHOW_SAVED, "Show saved similar posts", true);
+        $sb->add_bool_option(DeduplicateConfig::BAN_DELETED_POSTS, "Ban posts deleted on deduplication screen", true);
         $sb->end_table();
     }
 
@@ -173,7 +184,7 @@ class Deduplicate extends Extension
                     if (empty($left_post) || !is_numeric($left_post)) {
                         throw new SCoreException("left_post required");
                     }
-                    if ($action!=="dismiss_all" && $action!=="save_all"
+                    if ($action!=="dismiss_checked" && $action!=="save_checked"
                         && (empty($right_post) || !is_numeric($right_post))) {
                         throw new SCoreException("right_post required");
                     }
@@ -201,16 +212,23 @@ class Deduplicate extends Extension
 
                 $this->theme->display_page();
 
+                //$order_by = "CASE WHEN i1.id > i2.ID THEN i2.filesize ELSE i1.filesize END desc, post_1_id";
+                $order_by = "post_1_id";
+                //$order_by = "i2.filesize desc, i1.filesize desc";
+
                 if ($event->count_args() == 0) {
                     if (Extension::is_enabled(TrashInfo::KEY)) {
                         $one = $database->get_one("SELECT post_1_id id FROM post_similarities
                                     INNER JOIN images i1 on post_similarities.post_1_id = i1.id AND i1.trash = :false
                                     INNER JOIN images i2 on post_similarities.post_2_id = i2.id AND i2.trash = :false
                                      WHERE saved = :false and similarity <= :similarity
-                                     ORDER BY post_1_id FETCH FIRST ROW ONLY", ["false"=>false, "similarity"=>$max_variance]);
+                                     ORDER BY $order_by FETCH FIRST ROW ONLY", ["false"=>false, "similarity"=>$max_variance]);
                     } else {
-                        $one = $database->get_one("SELECT post_1_id id FROM post_similarities WHERE saved = :false and similarity <= :similarity
-                                                         ORDER BY post_1_id FETCH FIRST ROW ONLY", ["false"=>false, "similarity"=>$max_variance]);
+                        $one = $database->get_one("SELECT post_1_id id FROM post_similarities
+                                                            INNER JOIN images i1 on post_similarities.post_1_id = i1.id
+                                                            INNER JOIN images i2 on post_similarities.post_2_id = i2.id
+                                                            WHERE saved = :false and similarity <= :similarity
+                                                         ORDER BY $order_by FETCH FIRST ROW ONLY", ["false"=>false, "similarity"=>$max_variance]);
                     }
                     if ($one != 0) {
                         $this->build_deduplication_page($max_variance, intval($one));
@@ -232,6 +250,12 @@ class Deduplicate extends Extension
                 }
 
                 $page->set_mode(PageMode::PAGE);
+            }
+        } elseif ($event->page_matches("auto_deduplicate_scan")) {
+            if ($user->can(Permissions::DEDUPLICATE)) {
+                $this->run_auto_scan(); // Start upload
+            } else {
+                $this->theme->display_permission_denied();
             }
         }
     }
@@ -343,15 +367,14 @@ class Deduplicate extends Extension
         }
     }
 
-    public function scan_for_similar_posts(iterable $items, $max_variance): array
+    public function scan_for_similar_posts(iterable $posts, $max_variance): array
     {
         global $database;
 
-        $hashes = [];
         $post_list = [];
         $i = 0;
         // Pre-load and filter everything
-        foreach ($items as $post) {
+        foreach ($posts as $post) {
             $i++;
             if (!MimeType::matches_array($post->get_mime(), self::SUPPORTED_MIME)) {
                 log_debug("deduplicate", "Type {$post->get_mime()} not supported for post $post->id");
@@ -363,23 +386,19 @@ class Deduplicate extends Extension
             }
 
 
-            if ($post->perceptual_hash==null) {
-                $hash = $this->calculate_hash($post);
-            } else {
-                $hash = pg_unescape_bytea(stream_get_contents($post->perceptual_hash));
-                $hash = Hash::fromHex($hash);
-            }
+            $hash = $this->get_hash_for_post($post);
+
             if (empty($hash)) {
                 continue;
             }
-
-            $hashes[$post->id] = $hash;
+            self::$HASH_CACHE[$post->id] = $hash;
             $post_list[] = $post;
         }
 
         $similar_posts = 0;
         $iterations = 0;
         $count = 0;
+        $max_id = 0;
         while (count($post_list) > 0) {
             $post_1 = array_pop($post_list);
             $post_count = count($post_list);
@@ -394,26 +413,12 @@ class Deduplicate extends Extension
 
                 $database->begin_transaction();
                 try {
-                    $record = $this->get_similarity_record($post_1->id, $post_2->id);
-                    if ($record != null) {
-                        unset($record);
-                        // Posts have already been compared
-                        continue;
-                    };
-
-                    $hash1 = $hashes[$post_1->id];
-                    $hash2 = $hashes[$post_2->id];
-
-                    $distance = $hash1->distance($hash2);
-
-                    if ($distance <= $max_variance) {
+                    if ($this->compare_posts($post_1, $post_2, $max_variance)) {
                         $similar_posts++;
-                        $this->record_similarity($post_1->id, $post_2->id, $distance);
+                        $database->commit();
+                    } else {
+                        $database->rollback();
                     }
-
-                    unset($hash);
-                    unset($distance);
-                    $database->commit();
                 } catch (Exception $e) {
                     try {
                         $database->rollback();
@@ -424,7 +429,6 @@ class Deduplicate extends Extension
                 }
             }
 
-            unset($hashes[$post_1->id]);
             unset($post_1);
             $count++;
         }
@@ -434,6 +438,58 @@ class Deduplicate extends Extension
             "iterations"=>$iterations,
             "similar_posts"=>$similar_posts
         ];
+    }
+
+    private function compare_posts(Image $post_1, Image $post_2, float $max_variance): bool
+    {
+        $mime_1 = $post_1->get_mime();
+        $mime_2 = $post_1->get_mime();
+        $this->log_message(SCORE_LOG_INFO, "Comparing posts {$post_1->id} ($mime_1) and {$post_2->id} ($mime_2)");
+        if (!MimeType::matches_array($post_1->get_mime(), self::SUPPORTED_MIME)) {
+            $this->log_message(SCORE_LOG_DEBUG, "Post {$post_1->id} not supported ($mime_1), skipping");
+            return false;
+        }
+        if (!MimeType::matches_array($post_2->get_mime(), self::SUPPORTED_MIME)) {
+            $this->log_message(SCORE_LOG_DEBUG, "Post {$post_2->id} not supported($mime_2), skipping");
+            return false;
+        }
+
+        $record = $this->get_similarity_record($post_1->id, $post_2->id);
+        if ($record != null) {
+            unset($record);
+            $this->log_message(SCORE_LOG_DEBUG, "Posts {$post_1->id} and {$post_2->id} have already been found to be similar, returning early");
+            // Posts have already been compared
+            return true;
+        };
+
+        $hash1 = $this->get_hash_for_post($post_1);
+        $hash2 = $this->get_hash_for_post($post_2);
+
+        if (empty($hash1)) {
+            $this->log_message(SCORE_LOG_DEBUG, "Post {$post_1->id} did not successfully generate a hash");
+            throw new DeduplicateException("Post {$post_1->id} did not successfully generate a hash");
+            return false;
+        }
+        if (empty($hash2)) {
+            $this->log_message(SCORE_LOG_DEBUG, "Post {$post_2->id} did not successfully generate a hash");
+            throw new DeduplicateException("Post {$post_2->id} did not successfully generate a hash");
+            return false;
+        }
+
+        $distance = $hash1->distance($hash2);
+
+        if ($distance <= $max_variance) {
+            $this->log_message(SCORE_LOG_INFO, "Posts {$post_1->id} and {$post_2->id} seen as similar");
+            $this->record_similarity($post_1->id, $post_2->id, $distance);
+            unset($hash);
+            unset($distance);
+            return true;
+        } else {
+            $this->log_message(SCORE_LOG_INFO, "Posts {$post_1->id} and {$post_2->id} not seen as similar");
+            unset($hash);
+            unset($distance);
+            return false;
+        }
     }
 
     public function onBulkActionBlockBuilding(BulkActionBlockBuildingEvent $event): void
@@ -480,56 +536,64 @@ class Deduplicate extends Extension
 
             $config->set_int(DeduplicateConfig::VERSION, 1);
         }
+        if ($config->get_int(DeduplicateConfig::VERSION) < 2) {
+            $database->Execute("ALTER TABLE images ADD COLUMN auto_dedupe_progress INTEGER NULL");
+
+            $config->set_int(DeduplicateConfig::VERSION, 2);
+        }
     }
 
-    private function perform_deduplication_action(string $action, int $left_post, int $right_post, ?int $left_parent, ?int $right_parent): void
+    private function perform_deduplication_action(string $action, int $left_post_id, int $right_post_id, ?int $left_parent, ?int $right_parent): void
     {
+        $left_post = Image::by_id($left_post_id);
+        $righ_post = Image::by_id($right_post_id);
+
         switch ($action) {
             case "merge_left":
-                $this->merge_posts($right_post, $left_post);
+                $this->merge_posts($right_post_id, $left_post_id);
                 break;
             case "merge_right":
-                $this->merge_posts($left_post, $right_post);
+                $this->merge_posts($left_post_id, $right_post_id);
                 break;
             case "delete_right":
-                $this->delete_item_by_id($right_post);
+                $this->delete_item_by_id($right_post_id, "Deleted via de-duplicate in favor of {$left_post->hash}");
                 break;
             case "delete_left":
-                $this->delete_item_by_id($left_post);
+                $this->delete_item_by_id($left_post_id, "Deleted via de-duplicate in favor of {$righ_post->hash}");
                 break;
             case "delete_both":
-                $this->delete_item_by_id($left_post);
-                $this->delete_item_by_id($right_post);
+                $this->delete_item_by_id($left_post_id, "Deleted via de-duplicate");
+                $this->delete_item_by_id($right_post_id, "Deleted via de-duplicate");
                 break;
             case "dismiss":
-                $this->delete_similarity($left_post, $right_post);
+                $this->delete_similarity($left_post_id, $right_post_id);
                 break;
-            case "dismiss_all":
+            case "dismiss_checked":
                 if (isset($_POST["other_posts"]) && !empty($_POST["other_posts"])) {
-                    $other_posts = json_decode($_POST["other_posts"]);
+                    $other_posts = $_POST["other_posts"];
                 } else {
                     throw new DeduplicateException("other_posts required");
                 }
 
                 foreach ($other_posts as $other_post) {
-                    $this->delete_similarity($left_post, $other_post);
+                    $this->delete_similarity($left_post_id, intval($other_post));
                 }
                 break;
             case "save":
-                $this->save_similarity($left_post, $right_post, false);
+                $this->save_similarity($left_post_id, $right_post_id, false);
                 break;
             case "save_and_tag":
-                $this->save_similarity($left_post, $right_post, true);
+                $this->save_similarity($left_post_id, $right_post_id, true);
                 break;
-            case "save_all":
+            case "save_checked":
                 if (isset($_POST["other_posts"]) && !empty($_POST["other_posts"])) {
-                    $other_posts = json_decode($_POST["other_posts"]);
+                    $other_posts = $_POST["other_posts"];
                 } else {
                     throw new DeduplicateException("other_posts required");
                 }
 
                 foreach ($other_posts as $other_post) {
-                    $this->save_similarity($left_post, $other_post, false);
+                    $this->save_similarity($left_post_id, intval($other_post), false);
                 }
                 break;
             case "dismiss_to_pool":
@@ -540,8 +604,8 @@ class Deduplicate extends Extension
                     throw new DeduplicateException("target_pool required");
                 }
 
-                $this->add_to_pool($left_post, $right_post, $pool);
-                $this->delete_similarity($left_post, $right_post);
+                $this->add_to_pool($left_post_id, $right_post_id, $pool);
+                $this->delete_similarity($left_post_id, $right_post_id);
                 break;
             case "save_to_pool":
                 $pool = "";
@@ -551,52 +615,52 @@ class Deduplicate extends Extension
                     throw new DeduplicateException("target_pool required");
                 }
 
-                $this->add_to_pool($left_post, $right_post, $pool);
-                $this->save_similarity($left_post, $right_post);
+                $this->add_to_pool($left_post_id, $right_post_id, $pool);
+                $this->save_similarity($left_post_id, $right_post_id);
                 break;
             case "dismiss_left_as_parent":
-                send_event(new ImageRelationshipSetEvent($right_post, $left_post));
-                $this->delete_similarity($left_post, $right_post);
+                send_event(new ImageRelationshipSetEvent($right_post_id, $left_post_id));
+                $this->delete_similarity($left_post_id, $right_post_id);
                 break;
             case "dismiss_right_as_parent":
-                send_event(new ImageRelationshipSetEvent($left_post, $right_post));
-                $this->delete_similarity($left_post, $right_post);
+                send_event(new ImageRelationshipSetEvent($left_post_id, $right_post_id));
+                $this->delete_similarity($left_post_id, $right_post_id);
                 break;
             case "dismiss_use_left_parent":
                 if (empty($left_parent)) {
                     throw new DeduplicateException("left_parent required");
                 }
-                send_event(new ImageRelationshipSetEvent($right_post, $left_parent));
-                $this->delete_similarity($left_post, $right_post);
+                send_event(new ImageRelationshipSetEvent($right_post_id, $left_parent));
+                $this->delete_similarity($left_post_id, $right_post_id);
                 break;
             case "dismiss_use_right_parent":
                 if (empty($right_parent)) {
                     throw new DeduplicateException("right_parent required");
                 }
-                send_event(new ImageRelationshipSetEvent($left_post, $right_parent));
-                $this->delete_similarity($left_post, $right_post);
+                send_event(new ImageRelationshipSetEvent($left_post_id, $right_parent));
+                $this->delete_similarity($left_post_id, $right_post_id);
                 break;
             case "save_left_as_parent":
-                send_event(new ImageRelationshipSetEvent($right_post, $left_post));
-                $this->save_similarity($left_post, $right_post);
+                send_event(new ImageRelationshipSetEvent($right_post_id, $left_post_id));
+                $this->save_similarity($left_post_id, $right_post_id);
                 break;
             case "save_right_as_parent":
-                send_event(new ImageRelationshipSetEvent($left_post, $right_post));
-                $this->save_similarity($left_post, $right_post);
+                send_event(new ImageRelationshipSetEvent($left_post_id, $right_post_id));
+                $this->save_similarity($left_post_id, $right_post_id);
                 break;
             case "save_use_left_parent":
                 if (empty($left_parent)) {
                     throw new DeduplicateException("left_parent required");
                 }
-                send_event(new ImageRelationshipSetEvent($right_post, $left_parent));
-                $this->save_similarity($left_post, $right_post);
+                send_event(new ImageRelationshipSetEvent($right_post_id, $left_parent));
+                $this->save_similarity($left_post_id, $right_post_id);
                 break;
             case "save_use_right_parent":
                 if (empty($right_parent)) {
                     throw new DeduplicateException("right_parent required");
                 }
-                send_event(new ImageRelationshipSetEvent($left_post, $right_parent));
-                $this->save_similarity($left_post, $right_post);
+                send_event(new ImageRelationshipSetEvent($left_post_id, $right_parent));
+                $this->save_similarity($left_post_id, $right_post_id);
                 break;
             default:
                 throw new DeduplicateException("Action not supported: " . $action);
@@ -724,9 +788,10 @@ class Deduplicate extends Extension
         global $database;
 
         return $database->execute(
-            "DELETE FROM post_similarities WHERE post_1_id = :post_id OR post_2_id = :post_id",
+            "DELETE FROM post_similarities WHERE post_1_id = :post_id OR post_2_id = :post_id AND saved = :false",
             [
                 "post_id" => $post_id,
+                "false" => false
             ]
         );
     }
@@ -751,18 +816,37 @@ class Deduplicate extends Extension
         send_event(new PoolAddPostsEvent($pool, [$left_post, $right_post]));
     }
 
-    private function delete_item_by_id(int $post_id): void
+    private function delete_item_by_id(int $post_id, $reason): void
     {
-        $this->delete_item(Image::by_id($post_id), "Deleted via de-duplicate");
+        $this->delete_item(Image::by_id($post_id), $reason);
     }
 
 
     private function delete_item(Image $post, String $reason): void
     {
-        //send_event(new AddImageHashBanEvent($item->hash, $reason));
+        global $config;
+        if ($config->get_bool(DeduplicateConfig::BAN_DELETED_POSTS)) {
+            send_event(new AddImageHashBanEvent($post->hash, $reason));
+        }
         send_event(new ImageDeletionEvent($post));
     }
 
+    private function get_hash_for_post(Image $post)
+    {
+        if (self::$HASH_CACHE==null||!array_key_exists($post->id, self::$HASH_CACHE)) {
+            if ($post->perceptual_hash==null) {
+                $this->log_message(SCORE_LOG_DEBUG, "Hash for post {$post->id} not found, calculating");
+                return $this->calculate_hash($post);
+            } else {
+                $this->log_message(SCORE_LOG_DEBUG, "Hash for post {$post->id} already calculated, loading from record");
+                $bytes = pg_unescape_bytea(stream_get_contents($post->perceptual_hash));
+                return Hash::fromHex($bytes);
+            }
+        } else {
+            $this->log_message(SCORE_LOG_DEBUG, "Hash for post {$post->id} found in cache");
+            return self::$HASH_CACHE[$post->id];
+        }
+    }
 
     private function calculate_hash(Image $post)
     {
@@ -861,5 +945,212 @@ class Deduplicate extends Extension
             }
         }
         return $set;
+    }
+
+    private function set_headers(): void
+    {
+        global $page;
+
+        $page->set_mode(PageMode::MANUAL);
+        $page->set_mime(MimeType::TEXT);
+        $page->send_headers();
+    }
+
+    public function onLog(LogEvent $event)
+    {
+        global $user_config;
+
+        if (self::$SCAN_RUNNING) {
+//            $all = $user_config->get_bool(CronUploaderConfig::INCLUDE_ALL_LOGS);
+//            if ($event->priority >= $user_config->get_int(CronUploaderConfig::LOG_LEVEL) &&
+//                ($event->section==self::NAME || $all)) {
+            $output = "[" . date('Y-m-d H:i:s') . "] '[" . $event->section . "'] [" . LOGGING_LEVEL_NAMES[$event->priority] . "] " . $event->message;
+
+            echo $output . "\r\n";
+            flush_output();
+//            }
+        }
+    }
+
+
+    private function log_message(int $severity, string $message): void
+    {
+        log_msg(DeduplicateInfo::KEY, $severity, $message);
+    }
+
+    private function get_lock_file(): string
+    {
+        return join_path(DATA_DIR, ".dedupe-lock");
+    }
+
+    private function determine_next_post_to_scan(int $min_id = 0): ?Image
+    {
+        global $database;
+
+        $max_id = $database->get_one("SELECT MAX(ID) From Images");
+        $this->log_message(SCORE_LOG_DEBUG, "Current max ID is $max_id");
+
+        $next_post_id = $database->get_one(
+            "SELECT ID FROM Images
+                            WHERE (auto_dedupe_progress IS NULL OR
+                                   auto_dedupe_progress < :max_id)
+                            AND id >= :min_id ORDER BY ID ASC LIMIT 1",
+            ["max_id" => $max_id, "min_id" => $min_id]
+        );
+
+        if (empty($next_post_id)) {
+            return null;
+        }
+
+        return Image::by_id($next_post_id);
+    }
+
+    private function run_auto_scan(): bool
+    {
+        global $database, $user, $user_config, $config, $_shm_load_start;
+
+        $max_time = intval(ini_get('max_execution_time'))*.8;
+
+        //$max_time = 20;
+
+        $this->set_headers();
+
+        if (!$config->get_bool(UserConfig::ENABLE_API_KEYS)) {
+            throw new SCoreException("User API keys are note enabled. Please enable them for the auto deduplication scan functionality to work.");
+        }
+
+        if ($user->is_anonymous()) {
+            throw new SCoreException("User not present. Please specify the api_key for the user to run the process as.");
+        }
+
+        $this->log_message(SCORE_LOG_INFO, "Logged in as user {$user->name}");
+
+        if (!$user->can(Permissions::DEDUPLICATE)) {
+            throw new SCoreException("User does not have permission to run deduplication scan");
+        }
+
+        $lockfile = fopen($this->get_lock_file(), "w");
+        if (!flock($lockfile, LOCK_EX | LOCK_NB)) {
+            throw new SCoreException("Deduplication scan is already running");
+        }
+
+
+        $total_scanned = 0;
+        self::$SCAN_RUNNING  = true;
+        try {
+            //set_time_limit(0);
+
+            $min_id = 0;
+            $max_id = $database->get_one("SELECT MAX(ID) From Images");
+
+            $this->log_message(SCORE_LOG_DEBUG, "Current max ID is $max_id");
+
+            $post_1 = $this->determine_next_post_to_scan();
+
+            $execution_time = microtime(true) - $_shm_load_start;
+
+
+            $max_variance = $config->get_float(DeduplicateConfig::MAXIMUM_VARIANCE);
+            if ($max_variance < 0) {
+                $max_variance = 0;
+            }
+
+            $this->log_message(SCORE_LOG_DEBUG, "Current max variance is $max_variance");
+
+            while ($execution_time<$max_time && $post_1!=null) {
+                $last_other_post_id = $post_1->auto_dedupe_progress;
+                if ($last_other_post_id == null) {
+                    $last_other_post_id = 0;
+                }
+                if ($last_other_post_id ==$post_1->id) {
+                    $last_other_post_id++;
+                }
+
+                try {
+                    $min_id = $post_1->id;
+
+                    $this->log_message(SCORE_LOG_DEBUG, "Currently finding comparison post against {$post_1->id}");
+
+
+                    if (!array_key_exists($post_1->id, self::$HASH_CACHE)) {
+                        $hash = $this->get_hash_for_post($post_1);
+                        if (!empty($hash)) {
+                            self::$HASH_CACHE[$post_1->id] = $hash;
+                        } else {
+                            // This post can't be hashed, skip it
+                            $post_1 = null;
+                            throw new PostNotHashableException();
+                        }
+                    }
+
+
+
+                    $other_post_id = $database->get_one(
+                        "SELECT ID FROM Images WHERE id > :min_id AND id != :same_id ORDER BY ID ASC LIMIT 1",
+                        ["min_id" => $last_other_post_id, "same_id" => $post_1->id]
+                    );
+
+
+                    if ($other_post_id == null) {
+                        $this->log_message(SCORE_LOG_WARNING, "No other post was found for post {$post_1->id} with last other post id of $last_other_post_id");
+                    } else {
+                        $post_2 = Image::by_id($other_post_id);
+
+                        $database->begin_transaction();
+
+                        $this->compare_posts($post_1, $post_2, $max_variance);
+
+                        $database->execute(
+                            "UPDATE Images SET auto_dedupe_progress = :other_id WHERE id = :id",
+                            ["id" => $post_1->id, "other_id" => $other_post_id]
+                        );
+                        if ($database->is_transaction_open()) {
+                            $database->commit();
+                        }
+                        $last_other_post_id = $other_post_id;
+                        $post_1->auto_dedupe_progress = $last_other_post_id;
+                    }
+                    $total_scanned++;
+                } catch (PostNotHashableException $e) {
+                    try {
+                        if ($database->is_transaction_open()) {
+                            $database->rollback();
+                        }
+                    } catch (Exception $e) {
+                    }
+
+                    $this->log_message(SCORE_LOG_ERROR, "(" . gettype($e) . ") " . $e->getMessage());
+                    $this->log_message(SCORE_LOG_ERROR, $e->getTraceAsString());
+                    $min_id++;
+                } catch (Exception $e) {
+                    try {
+                        if ($database->is_transaction_open()) {
+                            $database->rollback();
+                        }
+                    } catch (Exception $e) {
+                    }
+
+                    $this->log_message(SCORE_LOG_ERROR, "(" . gettype($e) . ") " . $e->getMessage());
+                    $this->log_message(SCORE_LOG_ERROR, $e->getTraceAsString());
+                }
+
+                if ($post_1==null||$last_other_post_id>=$max_id) {
+                    $post_1 = $this->determine_next_post_to_scan($min_id);
+                }
+                $remaining = $max_time - $execution_time;
+                $this->log_message(SCORE_LOG_DEBUG, "Max run time remaining: $remaining");
+                $memory_usage = memory_get_usage();
+                $this->log_message(SCORE_LOG_DEBUG, "Current memory usage: $memory_usage");
+                $execution_time = microtime(true) - $_shm_load_start;
+            }
+
+            $rate = $total_scanned / $execution_time;
+            $this->log_message(SCORE_LOG_INFO, "Total posts compared: $total_scanned at $rate/sec");
+            return true;
+        } finally {
+            self::$SCAN_RUNNING = false;
+            flock($lockfile, LOCK_UN);
+            fclose($lockfile);
+        }
     }
 }

@@ -93,6 +93,14 @@ div.other_similar_item img {
 	margin:2px;
 }
 
+div.other_similar_item input[type='checkbox'] {
+    position: absolute;
+    left:0;
+    top:0;
+}
+
+
 div.other_similar_item {
     float:left;
+    position:relative;
 }
