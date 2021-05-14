@@ -73,6 +73,14 @@ class MimeType
     private const WEBP_LOSSLESS_HEADER =
         [0x52, 0x49, 0x46, 0x46, null, null, null, null, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x4C];
 
+    //RIFF####WEBPVP8X
+    private const WEBP_EXTENDED_HEADER =
+        [0x52, 0x49, 0x46, 0x46, null, null, null, null, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x58];
+
+    //VP8L
+    private const WEBP_EXTENDED_VP8L_CHUNK =
+        [0x56, 0x50, 0x38, 0x4C];
+
     private const REGEX_MIME_TYPE = "/^([-\w.]+)\/([-\w.]+)(;.+)?$/";
 
     public static function is_mime(string $value): bool
@@ -148,7 +156,7 @@ class MimeType
     }
 
 
-    private static function compare_file_bytes(string $file_name, array $comparison): bool
+    private static function compare_file_bytes(string $file_name, array $comparison, int $offset = 0): bool
     {
         $size = filesize($file_name);
         if ($size < count($comparison)) {
@@ -158,20 +166,81 @@ class MimeType
 
         if (($fh = @fopen($file_name, 'rb'))) {
             try {
+                if ($offset>0) {
+                    fseek($fh, $offset);
+                }
                 $chunk = unpack("C*", fread($fh, count($comparison)));
 
-                for ($i = 0; $i < count($comparison); $i++) {
-                    $byte = $comparison[$i];
-                    if ($byte == null) {
-                        continue;
-                    } else {
-                        $fileByte = $chunk[$i + 1];
-                        if ($fileByte != $byte) {
-                            return false;
+                return self::compare_buffers($chunk, $comparison, 1);
+            } finally {
+                @fclose($fh);
+            }
+        } else {
+            throw new MediaException("Unable to open file for byte check: $file_name");
+        }
+    }
+
+    private static function compare_buffers(array $file_buffer, array $comparison_buffer, int $file_byte_offset = 0)
+    {
+        if (sizeof($file_buffer)!=sizeof($comparison_buffer)) {
+            return false;
+        }
+
+        for ($i = 0; $i < count($file_buffer); $i++) {
+            $comparison_byte = $comparison_buffer[$i];
+            if ($comparison_byte == null) {
+                continue;
+            } else {
+                $fileByte = $file_buffer[$i + $file_byte_offset];
+                if ($fileByte != $comparison_byte) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static function search_for_bytes(string $file_name, array $comparison, int $offset = 0): bool
+    {
+        if (empty($comparison)) {
+            throw new Exception("comparison cannot be empty");
+        }
+        if ($comparison[0]==null) {
+            throw new Exception("First value of comparison must be a value, you likely want to use offset");
+        }
+
+        $size = filesize($file_name);
+        if ($size < count($comparison)) {
+            // Can't match because it's too small
+            return false;
+        }
+
+        if (($fh = @fopen($file_name, 'rb'))) {
+            try {
+                $first = $comparison[0];
+                if ($offset>0) {
+                    fseek($fh, $offset);
+                }
+                $buffer = null;
+                while (!feof($fh)) {
+                    if ($buffer!=null) {
+                        // Make sure that we bring the last n bytes before the next chunk to make sure we don't miss
+                        // a result that splits across a chunk divide.
+                        fseek($fh, sizeof($comparison) * -1, SEEK_CUR);
+                    }
+                    $buffer = unpack("C*", fread($fh, 1000));
+
+                    for ($i = 1; $i < sizeof($buffer); $i++) {
+                        if ($buffer[$i]==$first) {
+                            // We found the first value. Now we check if the subsequent values are present.
+                            $chunk = array_slice($buffer, $i-1, sizeof($comparison));
+                            if (self::compare_buffers($chunk, $comparison)) {
+                                return true;
+                            }
                         }
                     }
-                }
-                return true;
+                } ;
+                return false;
             } finally {
                 @fclose($fh);
             }
@@ -182,13 +251,26 @@ class MimeType
 
     public static function is_animated_webp(string $image_filename): bool
     {
+        // TODO: Implement extended header format detection
         return self::compare_file_bytes($image_filename, self::WEBP_ANIMATION_HEADER);
     }
 
     public static function is_lossless_webp(string $image_filename): bool
     {
-        return self::compare_file_bytes($image_filename, self::WEBP_LOSSLESS_HEADER);
+        if (self::compare_file_bytes($image_filename, self::WEBP_LOSSLESS_HEADER)) {
+            return true;
+        }
+        if (self::compare_file_bytes($image_filename, self::WEBP_EXTENDED_HEADER)) {
+            // Webp has an alternate extended header format that organizes the information differently.
+            // this extended format stores animated and non-animated data in a very similar format,
+            // with a non-animated image just having a single frame.
+            // The exact position varies based on what chunks come before it, so we basically just have to search for VP8L
+            return self::search_for_bytes($image_filename, self::WEBP_EXTENDED_VP8L_CHUNK, 30);
+        }
+        return false;
     }
+
+
 
 
 
