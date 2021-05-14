@@ -58,6 +58,7 @@ class TranscodeImage extends Extension
 
         foreach (array_values(self::INPUT_MIMES) as $mime) {
             $config->set_default_string(self::get_mapping_name($mime), "");
+            $config->set_default_bool(self::get_mapping_name($mime).TranscodeConfig::IF_SMALLER, false);
         }
     }
 
@@ -152,6 +153,7 @@ class TranscodeImage extends Extension
             if (MediaEngine::is_input_supported($engine, $mime)) {
                 $outputs = $this->get_supported_output_mimes($engine, $mime);
                 $sb->add_choice_option(self::get_mapping_name($mime), $outputs, "$display", true);
+                $sb->add_bool_option(self::get_mapping_name($mime).TranscodeConfig::IF_SMALLER, "If smaller", true);
             }
         }
         $sb->add_int_option(TranscodeConfig::QUALITY, "Lossy Format Quality", true);
@@ -174,8 +176,29 @@ class TranscodeImage extends Extension
                 if (empty($target_mime)) {
                     return;
                 }
+
+                if (array_key_exists("transcoded", $event->metadata) &&
+                    $event->metadata["transcoded"]===true) {
+                    log_debug("Transcode", "Preventing transcode of already transcoded post");
+                    return;
+                }
+
                 try {
+                    $old_size = filesize($event->tmpname);
+                    log_info("Transcode", "The MIME type for upload {$event->tmpname} ({$mime}) is marked for auto-transcode to $target_mime, attempting now");
                     $new_image = $this->transcode_image($event->tmpname, $mime, $target_mime);
+
+                    $if_smaller = $config->get_bool(self::get_mapping_name($mime).TranscodeConfig::IF_SMALLER);
+                    if ($if_smaller) {
+                        $new_size = filesize($new_image);
+                        log_info("Transcode", "But only if smaller, old size $old_size, new size $new_size");
+                        if ($new_size>=$old_size) {
+                            log_warning("Transcode", "Tanscoding {$event->tmpname} from $mime to $target_mime results in a larger or equally sized file, skipping transcode");
+                            return;
+                        }
+                    }
+
+
                     $event->set_mime($target_mime);
                     $event->set_tmpname($new_image);
                 } catch (Exception $e) {
@@ -207,9 +230,14 @@ class TranscodeImage extends Extension
             } else {
                 if (isset($_POST['transcode_mime'])) {
                     try {
-                        $this->transcode_and_replace_image($image_obj, $_POST['transcode_mime']);
+                        if ($_POST["transcode_remove_original"]=="true"||$_POST["transcode_remove_original"]=="if_smaller") {
+                            $new_image = $this->transcode_and_replace_image($image_obj, $_POST['transcode_mime'], ($_POST["transcode_remove_original"]=="if_smaller"));
+                        } else {
+                            $new_image = $this->transcode_and_create_image($image_obj, $_POST['transcode_mime']);
+                        }
+
                         $page->set_mode(PageMode::REDIRECT);
-                        $page->set_redirect(make_link("post/view/".$image_id));
+                        $page->set_redirect(make_link("post/view/".$new_image->id));
                     } catch (ImageTranscodeException $e) {
                         $this->theme->display_transcode_error($page, "Error Transcoding", $e->getMessage());
                     }
@@ -284,7 +312,11 @@ class TranscodeImage extends Extension
 
                             $before_size =  $image->filesize;
 
-                            $new_image = $this->transcode_and_replace_image($image, $mime);
+                            if ($_POST["transcode_remove_original"]=="true"||$_POST["transcode_remove_original"]=="if_smaller") {
+                                $new_image = $this->transcode_and_replace_image($image, $mime, ($_POST["transcode_remove_original"]=="if_smaller"));
+                            } else {
+                                $new_image = $this->transcode_and_create_image($image, $mime);
+                            }
                             // If a subsequent transcode fails, the database needs to have everything about the previous
                             // transcodes recorded already, otherwise the image entries will be stuck pointing to
                             // missing image files
@@ -337,17 +369,43 @@ class TranscodeImage extends Extension
         return $output;
     }
 
-
-
-    private function transcode_and_replace_image(Image $image_obj, String $target_mime): Image
+    private function transcode_and_create_image(Image $image_obj, String $target_mime): Image
     {
         $original_file = warehouse_path(Image::IMAGE_DIR, $image_obj->hash);
 
         $tmp_filename = $this->transcode_image($original_file, $image_obj->get_mime(), $target_mime);
 
+        $post_id = add_image($tmp_filename, $image_obj->filename, $image_obj->get_tag_list(), ["transcoded"=>true]);
+
+        if ($post_id==-1) {
+            throw new SCoreException("Unable to import transcoded file");
+        }
+
+        return Image::by_id($post_id);
+    }
+
+    private function transcode_and_replace_image(Image $image_obj, String $target_mime, bool $if_smaller): Image
+    {
+        $original_file = warehouse_path(Image::IMAGE_DIR, $image_obj->hash);
+        $original_size = filesize($original_file);
+
+        $tmp_filename = $this->transcode_image($original_file, $image_obj->get_mime(), $target_mime);
+        $new_size = filesize($tmp_filename);
+
+        if ($if_smaller && $new_size>=$original_size) {
+            // If the new file is bigger than the old file, and if_smaller is specified,
+            // then we do not complete the transcoding
+            log_warning(
+                "Transcode",
+                "Not transcoding {$image_obj->id} because the new file would be larger",
+                "Not transcoding {$image_obj->id} because the new file would be larger"
+            );
+            return $image_obj;
+        }
+
         $new_image = new Image();
         $new_image->hash = md5_file($tmp_filename);
-        $new_image->filesize = filesize($tmp_filename);
+        $new_image->filesize = $new_size;
         $new_image->filename = $image_obj->filename;
         $new_image->width = $image_obj->width;
         $new_image->height = $image_obj->height;

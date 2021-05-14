@@ -10,4 +10,6 @@ class TranscodeConfig
     const UPLOAD_PREFIX = "transcode_upload_";
     const QUALITY = "transcode_quality";
     const ALPHA_COLOR = "transcode_alpha_color";
+
+    const IF_SMALLER = "_if_smaller";
 }

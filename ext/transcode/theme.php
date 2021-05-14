@@ -18,7 +18,7 @@ class TranscodeImageTheme extends Themelet
                 <input type='hidden' name='image_id' value='{$image->id}'>
                 <input type='hidden' id='image_lossless' name='image_lossless' value='{$image->lossless}'>
                 ".$this->get_transcode_picker_html($options)."
-				<br><input id='transcodebutton' type='submit' value='Transcode Image'>
+				<br><input id='transcodebutton' type='submit' value='Transcode Post'>
 			</form>
 		";
 
@@ -32,7 +32,11 @@ class TranscodeImageTheme extends Themelet
             $html .= "<option value='$value'>$display</option>";
         }
 
-        return $html."</select>";
+        return $html."</select>
+<select name='transcode_remove_original'>
+<option value='false' selected='selected' />Don't replace original post</option>
+<option value='true' />Replace original post</option>
+<option value='if_smaller' />Replace original post if smaller</option></select>";
     }
 
     public function display_transcode_error(Page $page, string $title, string $message): void
