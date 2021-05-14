@@ -268,4 +268,19 @@ class MimeMap
         }
         return null;
     }
+
+    /// Takes an array of mime types and expands it to include known equivalent mime types
+    public static function explode(array $mimes): array
+    {
+        $output = [];
+        foreach ($mimes as $mime) {
+            $data = self::get_for_mime($mime);
+            if ($data!=null) {
+                foreach ($data[self::MAP_MIME] as $mapped_mime) {
+                    $output[] = $mapped_mime;
+                }
+            }
+        }
+        return $output;
+    }
 }
